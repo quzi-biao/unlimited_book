@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Flipbook AI</string>
+    <string name="title_activity_main">Flipbook AI</string>
+    <string name="accessibility_service_description">Flipbook AI 开机启动助手（Kiosk 模式自启动）</string>
+</resources>

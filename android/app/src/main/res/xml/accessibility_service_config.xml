@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BootAccessibilityService 配置
+  功能：开机后在 MIUI Launcher 视图树中找到 Flipbook AI 图标并模拟点击。
+  权限要求：
+    - canRetrieveWindowContent="true"：允许读取 Launcher 视图树，搜索 App 图标节点
+    - eventTypes：监听窗口状态变化 + 内容变化，以便在 Launcher 完全加载后触发
+-->
+<accessibility-service
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagRetrieveInteractiveWindows"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/accessibility_service_description"
+    android:notificationTimeout="100"
+    android:settingsActivity="" />

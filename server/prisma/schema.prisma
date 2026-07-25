@@ -1,0 +1,593 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// 管理员 / 客户经理
+// role: 'superadmin' | 'manager'
+// ─────────────────────────────────────────────
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  avatarUrl    String?
+  role         String   @default("manager") // 'superadmin' | 'manager'
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  /// 该客户经理关联的设备
+  managedDevices Device[] @relation("DeviceManager")
+  supportTickets SupportTicket[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// 渠道 / 合作伙伴
+// type: 'manager' | 'affiliate' | 'partner'
+// ─────────────────────────────────────────────
+model Channel {
+  id                       String   @id @default(cuid())
+  name                     String   @unique
+  type                     String   @default("affiliate")
+  contactName              String?
+  contactPhone             String?
+  hardwareCommissionFen    Int      @default(300)
+  subscriptionCommissionRate Float   @default(0.2)
+  notes                    String?  @db.Text
+  isActive                 Boolean  @default(true)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  devices       Device[]
+  orders        Order[]
+  tickets       SupportTicket[]
+  settlements   ChannelSettlement[]
+
+  @@map("channels")
+}
+
+// ─────────────────────────────────────────────
+// 设备表
+// ─────────────────────────────────────────────
+model Device {
+  id              String    @id @default(cuid())
+  fingerprint     String    @unique  // ANDROID_ID 等硬件指纹
+  deviceCode      String    @unique  // 0x+40位hex，区块链地址格式
+  appVersion      String?            // 客户端上报的版本号
+  deviceModel     String?            // 设备型号
+  osVersion       String?            // Android 版本
+  ipAddress       String?            // 来源 IP
+  notes           String?            // 备注
+  channelId       String?            // 归属渠道
+  channel         Channel? @relation(fields: [channelId], references: [id])
+  managerId       String?            // 关联的客户经理 userId
+  manager         User?     @relation("DeviceManager", fields: [managerId], references: [id])
+  targetVersionId String?            // 设备专属目标版本 ID（优先级高于全局）
+  voiceId         String?            // 设备绑定的 TTS 音色 ID（null = 使用第一个启用音色）
+  promptStyleId   String?            // 设备绑定的提示词风格 ID
+  promptStyle     PromptStyle?       @relation(fields: [promptStyleId], references: [id])
+  lastSeenAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  wallet           DeviceWallet?
+  sessions         DeviceSession[]
+  orders           Order[]
+  books            Book[]
+  pages            Page[]           @relation("DevicePages")
+  annotations      Annotation[]     @relation("DeviceAnnotations")
+  pageExplanations PageExplanation[] @relation("DeviceExplanations")
+  audioMasters     AudioMaster[]    @relation("DeviceAudio")
+  tickets          SupportTicket[]
+
+  @@index([fingerprint])
+  @@index([channelId])
+  @@index([managerId])
+  @@map("devices")
+}
+
+// ─────────────────────────────────────────────
+// 点数钱包（独立表，高频读写与设备主表隔离）
+// ─────────────────────────────────────────────
+model DeviceWallet {
+  id        String   @id @default(cuid())
+  deviceId  String   @unique
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  balance   Int      @default(0)  // 当前余额（学习点数）
+  updatedAt DateTime @updatedAt
+
+  ledger PointLedger[]
+
+  @@map("device_wallets")
+}
+
+// ─────────────────────────────────────────────
+// 学习点数流水
+// ─────────────────────────────────────────────
+model PointLedger {
+  id         String       @id @default(cuid())
+  walletId   String
+  wallet     DeviceWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  deviceId   String       // 冗余字段，方便按设备查询
+  delta      Int          // 正=充值/赠送，负=消耗
+  balance    Int          // 变更后余额快照
+  type       String       // 'purchase'|'consume_image'|'consume_tts'|'consume_text'|'admin_grant'|'init'|'subscribe'
+  refId      String?      // 关联的 pageId/audioMasterId/orderId
+  reason     String?      // 文字说明
+  operatorId String?      // Admin 操作人 ID（手动增减时）
+  createdAt  DateTime     @default(now())
+
+  @@index([walletId])
+  @@index([deviceId])
+  @@map("point_ledgers")
+}
+
+// ─────────────────────────────────────────────
+// 设备在线会话
+// ─────────────────────────────────────────────
+model DeviceSession {
+  id              String    @id @default(cuid())
+  deviceId        String
+  device          Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  startAt         DateTime  @default(now())
+  endAt           DateTime?
+  durationSeconds Int       @default(0)
+
+  @@index([deviceId])
+  @@map("device_sessions")
+}
+
+// ─────────────────────────────────────────────
+// App 版本表
+// ─────────────────────────────────────────────
+model AppVersion {
+  id          String   @id @default(cuid())
+  versionCode Int      @unique       // 整数版本号，用于比对（如 12）
+  versionName String                 // 语义版本，如 "1.2.3"
+  apkUrl      String                 // OSS 公开下载 URL
+  changelog   String?                // 更新说明
+  isCurrent   Boolean  @default(false) // 全局当前版本（同时只有一个 true）
+  forceUpgrade Boolean @default(false) // 强制升级（App 启动时必须更新）
+  createdAt   DateTime @default(now())
+
+  @@map("app_versions")
+}
+
+// ─────────────────────────────────────────────
+// 全局配置（KV 存储）
+// key 示例:
+//   price_image        => "0.16"     每张图片价格（元）
+//   price_tts_per_min  => "0.1"      每分钟 TTS（元）
+//   price_text_per_wan => "0.01"     每万字（元）
+//   points_per_image   => "10"       每张图消耗点数
+//   points_per_tts_min => "5"        每分钟 TTS 消耗点数
+//   points_per_wan_text=> "1"        每万字消耗点数
+//   init_points        => "100"      新设备初始赠送点数
+//   overdraft_limit    => "-50"      允许透支下限（负数）
+// ─────────────────────────────────────────────
+model GlobalConfig {
+  key       String   @id
+  value     String   // JSON 字符串或纯字符串
+  updatedAt DateTime @updatedAt
+
+  @@map("global_configs")
+}
+
+// ─────────────────────────────────────────────
+// 套餐
+// ─────────────────────────────────────────────
+model Plan {
+  id              String   @id @default(cuid())
+  name            String               // "月度基础版"
+  price           Int                  // 分（6000 = 60元）
+  points          Int                  // 购买获得点数
+  descriptionJson String?  @db.Text    // 富文本 JSON（Quill/TipTap delta）或 Markdown
+  coverImageUrl   String?              // 套餐封面图 OSS URL
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0) // 排序权重
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  orders Order[]
+
+  @@map("plans")
+}
+
+// ─────────────────────────────────────────────
+// 订单（与支付渠道解耦）
+// ─────────────────────────────────────────────
+model Order {
+  id        String    @id @default(cuid())
+  deviceId  String
+  device    Device    @relation(fields: [deviceId], references: [id])
+  channelId String?
+  channel   Channel?  @relation(fields: [channelId], references: [id])
+  planId    String?               // null = 自定义充值
+  plan      Plan?     @relation(fields: [planId], references: [id])
+  amount    Int                   // 应付金额（分）
+  points    Int                   // 购买到的点数
+  status    String    @default("pending") // pending|paid|failed|refunded
+  channelSettlementStatus String @default("unsettled") // unsettled|settled
+  createdAt DateTime  @default(now())
+  paidAt    DateTime?
+
+  payment   Payment?
+
+  @@index([deviceId])
+  @@index([channelId])
+  @@map("orders")
+}
+
+// ─────────────────────────────────────────────
+// 支付记录（渠道解耦，未来可扩展支付宝等）
+// ─────────────────────────────────────────────
+model Payment {
+  id             String   @id @default(cuid())
+  orderId        String   @unique
+  order          Order    @relation(fields: [orderId], references: [id])
+  channel        String   // 'wechat' | 'alipay' | 'manual' | ...
+  channelOrderId String?  // 第三方平台单号
+  rawResponse    Json?    // 支付回调原始数据（便于对账）
+  paidAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  @@map("payments")
+}
+
+// ─────────────────────────────────────────────
+// Book 表
+// ─────────────────────────────────────────────
+model Book {
+  id        String   @id @default(cuid())
+  deviceId  String?                               // 设备维度（新主键，软迁移）
+  device    Device?  @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  userId    String?                               // 保留兼容历史数据
+  title     String
+  coverUrl  String?
+  mode      String   @default("book")             // 'book' | 'space'
+  modelName String?
+  prompt    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pages Page[]
+
+  @@index([deviceId])
+  @@map("books")
+}
+
+// ─────────────────────────────────────────────
+// 页表（支持树形结构）
+// ─────────────────────────────────────────────
+model Page {
+  id     String @id @default(cuid())
+  bookId String
+  book   Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  deviceId  String?               // 设备维度（便于统计）
+  device    Device? @relation("DevicePages", fields: [deviceId], references: [id], onDelete: SetNull)
+
+  parentPageId String?
+  parentPage   Page?   @relation("PageChildren", fields: [parentPageId], references: [id])
+  children     Page[]  @relation("PageChildren")
+
+  imageUrl          String
+  title             String?
+  prompt            String?
+  selectionRegion   Json?
+  selectionImageUrl String?
+  contentHash       String?
+  promptHash        String? @unique
+
+  identification Json?
+
+  annotations  Annotation[]
+  explanations PageExplanation[]
+
+  createdAt DateTime @default(now())
+
+  @@index([bookId])
+  @@index([parentPageId])
+  @@index([promptHash])
+  @@index([deviceId])
+  @@map("pages")
+}
+
+// ─────────────────────────────────────────────
+// 探索标注
+// ─────────────────────────────────────────────
+model Annotation {
+  id     String @id @default(cuid())
+  pageId String
+  page   Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  deviceId String?
+  device   Device? @relation("DeviceAnnotations", fields: [deviceId], references: [id], onDelete: SetNull)
+
+  x           Float
+  y           Float
+  w           Float  @default(0)
+  h           Float  @default(0)
+  explanation String
+
+  exploredPageId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([pageId])
+  @@index([deviceId])
+  @@map("annotations")
+}
+
+// ─────────────────────────────────────────────
+// AI 提示词 KV 表
+// ─────────────────────────────────────────────
+model Prompt {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("prompts")
+}
+
+// ─────────────────────────────────────────────
+// 页面详细解读
+// ─────────────────────────────────────────────
+model PageExplanation {
+  id       String @id @default(cuid())
+  pageId   String
+  page     Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  deviceId String?
+  device   Device? @relation("DeviceExplanations", fields: [deviceId], references: [id], onDelete: SetNull)
+
+  language String @default("zh")
+  content  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([pageId, language])
+  @@index([pageId])
+  @@index([deviceId])
+  @@map("page_explanations")
+}
+
+// ─────────────────────────────────────────────
+// 语音缓存主记录
+// ─────────────────────────────────────────────
+model AudioMaster {
+  id           String   @id @default(cuid())
+  sourceType   String
+  sourceId     String
+  language     String   @default("zh")
+  voiceId      String   @default("Chinese (Mandarin)_Lyrical_Voice") // 合成音色
+  contentMd5   String
+  totalSeconds Float?
+  segmentCount Int      @default(0)
+  isComplete   Boolean  @default(false)
+
+  deviceId String?
+  device   Device? @relation("DeviceAudio", fields: [deviceId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  segments AudioSegment[]
+
+  @@unique([sourceType, sourceId, language, voiceId])
+  @@index([sourceId])
+  @@index([deviceId])
+  @@map("audio_masters")
+}
+
+// ─────────────────────────────────────────────
+// 语音缓存分段
+// ─────────────────────────────────────────────
+model AudioSegment {
+  id           String      @id @default(cuid())
+  masterId     String
+  master       AudioMaster @relation(fields: [masterId], references: [id], onDelete: Cascade)
+
+  segmentIndex    Int
+  textChunk       String
+  ossUrl          String
+  durationSeconds Float?
+
+  createdAt DateTime @default(now())
+
+  @@index([masterId, segmentIndex])
+  @@map("audio_segments")
+}
+
+// ─────────────────────────────────────────────
+// 百科话题名称表
+// ─────────────────────────────────────────────
+model Topic {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  category    String?        // 旧文本分类（保留以兼容历史数据）
+  categoryId  String?
+  categoryRef TopicCategory? @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([name])
+  @@map("topics")
+}
+
+// ─────────────────────────────────────────────
+// 百科话题分类
+// ─────────────────────────────────────────────
+model TopicCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  prompt    String?  @db.Text
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  topics    Topic[]
+
+  @@map("topic_categories")
+}
+
+// ─────────────────────────────────────────────
+// 工单系统
+// ─────────────────────────────────────────────
+model SupportTicket {
+  id           String   @id @default(cuid())
+  deviceId     String?
+  device       Device?   @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  channelId    String?
+  channel      Channel?  @relation(fields: [channelId], references: [id], onDelete: SetNull)
+  title        String
+  type         String   @default("feedback") // device|payment|refund|feedback|other
+  status       String   @default("open")      // open|processing|waiting|resolved|closed
+  priority     String   @default("medium")    // low|medium|high|urgent
+  contactName  String?
+  contactPhone String?
+  description  String   @db.Text
+  resolution   String?  @db.Text
+  assigneeId   String?
+  assignee     User?    @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  resolvedAt   DateTime?
+  closedAt     DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  messages SupportTicketMessage[]
+
+  @@index([deviceId])
+  @@index([channelId])
+  @@index([status])
+  @@index([type])
+  @@map("support_tickets")
+}
+
+model SupportTicketMessage {
+  id         String   @id @default(cuid())
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorType String   @default("agent") // agent|customer|system
+  authorName String?
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+
+  @@index([ticketId])
+  @@map("support_ticket_messages")
+}
+
+// ─────────────────────────────────────────────
+// 渠道结算报表
+// ─────────────────────────────────────────────
+model ChannelSettlement {
+  id                      String   @id @default(cuid())
+  channelId               String
+  channel                 Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  periodStart             DateTime
+  periodEnd               DateTime
+  hardwareOrderCount      Int      @default(0)
+  hardwareRevenueFen      Int      @default(0)
+  hardwareCommissionFen   Int      @default(0)
+  subscriptionRevenueFen  Int      @default(0)
+  subscriptionCommissionFen Int    @default(0)
+  refundFen               Int      @default(0)
+  totalCommissionFen      Int      @default(0)
+  status                  String   @default("draft") // draft|confirmed|paid
+  note                    String?  @db.Text
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@index([channelId, periodStart, periodEnd])
+  @@map("channel_settlements")
+}
+
+// ─────────────────────────────────────────────
+// 百科话题图片缓存（全局共享）
+// ─────────────────────────────────────────────
+model TopicCache {
+  id         String   @id @default(cuid())
+  topicName  String   @unique
+  promptText String   @db.Text
+  promptMd5  String
+  imageUrl   String
+  hitCount   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([topicName])
+  @@map("topic_caches")
+}
+
+// ─────────────────────────────────────────────
+// TTS 音色表（从 MiniMax 同步）
+// ─────────────────────────────────────────────
+model Voice {
+  id          String   @id @default(cuid())
+  voiceId     String   @unique        // MiniMax voice_id
+  voiceName   String?                 // 中文名（系统音色有）
+  description String?                 // 音色描述
+  voiceType   String                  // 'system'|'voice_cloning'|'voice_generation'
+  enabled     Boolean  @default(false)
+  previewUrl  String?                 // OSS 试听音频 URL
+  syncedAt    DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("voices")
+}
+
+// ─────────────────────────────────────────────
+// 提示词风格表 (管理各个业务场景的关联提示词)
+// ─────────────────────────────────────────────
+model PromptStyle {
+  id                String   @id @default(cuid())
+  name              String   @unique             // 风格名称，如"酷炫科普风"
+  isActive          Boolean  @default(true)      // 是否启用，供客户端选择
+  imageModel        String   @default("gpt-image-2") // 适用的生图模型，如 'gpt-image-2' 或 'gemini'
+
+  // 统一下发的风格/规则（子场景会拼装或继承此内容）
+  unifiedStyle      String   @db.Text            // 比如画风描述、排版规则、极细线条等
+
+  // 各个业务场景的提示词模板或专属规则
+  topicExploration  String   @db.Text            // 主题探索生图 prompt
+  regionExploration String   @db.Text            // 区域探索（Scene/Object框选识别）
+  deepExploration   String   @db.Text            // 深入探索（科普文本生子图）
+  ttsSynthesis      String?  @db.Text            // tts合成系统提示词
+  pageDescription   String?  @db.Text            // 页面描述解释系统提示词
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  devices           Device[]
+
+  @@map("prompt_styles")
+}
+
+// ─────────────────────────────────────────────
+// 协议管理
+// ─────────────────────────────────────────────
+model Agreement {
+  id        String   @id @default(cuid())
+  name      String   @unique             // e.g., terms_of_service, privacy_policy, child_privacy
+  title     String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("agreements")
+}

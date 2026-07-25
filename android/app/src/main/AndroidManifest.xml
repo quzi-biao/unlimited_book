@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_flipbook_magic"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_flipbook_magic_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme"
+        android:networkSecurityConfig="@xml/network_security_config">
+
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:exported="true"
+            android:lockTaskMode="if_whitelisted"
+            android:screenOrientation="sensorLandscape"
+            android:windowSoftInputMode="adjustResize">
+
+            <!-- 普通启动器入口 -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+
+            <!-- ⚠ 不注册 CATEGORY_HOME：
+                 注册为 Home 会导致开机死锁——App 崩溃时系统无限重试，
+                 设备无法完成启动。Lock Task 模式已足够防止用户退出。
+                 BootReceiver 负责开机自启动。 -->
+
+        </activity>
+
+        <!-- 开机自启动 Receiver -->
+        <receiver
+            android:name=".BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <!-- BOOT_COMPLETED：标准开机广播（MIUI 可能拦截，但仍注册作为保底）-->
+            <intent-filter android:priority="1000">
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <!-- MIUI 快速启动（quickboot）-->
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+            <!-- USER_PRESENT：用户解锁屏幕时触发，MIUI 不拦截，作为自启动保障 -->
+            <intent-filter>
+                <action android:name="android.intent.action.USER_PRESENT" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".AppUpdateReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <!-- ACTION_MY_PACKAGE_REPLACED: 系统广播，APK 替换成功后触发（兜底重启） -->
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+            <!-- ACTION_INSTALL_COMPLETE: PackageInstaller.Session 安装结果回调（立即重启） -->
+            <intent-filter>
+                <action android:name="com.flipbook.ai.INSTALL_COMPLETE" />
+            </intent-filter>
+        </receiver>
+
+        <!--
+          BootAccessibilityService — MIUI 抗拦截开机自启动
+          AccessibilityService 由 AccessibilityManagerService 管理，
+          不经过 MIUI 的 BroadcastQueueInjector，开机后自动重启。
+          启用命令（setup-kiosk.sh 中执行）：
+            adb shell settings put secure enabled_accessibility_services \
+              com.flipbook.ai/.BootAccessibilityService
+            adb shell settings put secure accessibility_enabled 1
+        -->
+        <service
+            android:name=".BootAccessibilityService"
+            android:enabled="true"
+            android:exported="true"
+            android:directBootAware="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <!--
+          Device Owner 模式所需的 DeviceAdminReceiver
+          启用后 startLockTask() 完全静默（无"如需取消固定"提示）
+          设置命令（需先移除设备上所有账号）：
+            adb shell dpm set-device-owner com.flipbook.ai/.KioskAdminReceiver
+        -->
+        <receiver
+            android:name=".KioskAdminReceiver"
+            android:label="Flipbook Kiosk Admin"
+            android:description="@string/app_name"
+            android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:exported="true">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
+    </application>
+
+    <!-- Permissions -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 开机自启动 -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- BootAccessibilityService 提升为前台服务，允许后台启动 Activity -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Android 13+ 前台服务通知需要此权限 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- BootReceiver 检查 App 是否已在前台（防止重复启动）-->
+    <uses-permission android:name="android.permission.GET_TASKS" />
+    <!-- OTA 升级：允许安装来自未知来源的 APK -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- OTA 升级：安装前将壁纸设为黑色，防止短暂显示桌面 -->
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
+    <!-- 写入外部存储（下载 APK，Android 9 及以下需要） -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <!-- Android 13+：相册写入权限 -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <!-- Android 12+：精确闹钟权限（BootReceiver 开机自启动用）-->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- Android 13+：USE_EXACT_ALARM 不需要用户授权弹窗（Kiosk 场景推荐）-->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <!-- WiFi 管理：扫描 + 连接 -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Android 13+ WiFi 扫描必须 -->
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="33" />
+    <!-- 屏幕亮度写入（Device Owner 可免弹窗直接写） -->
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+</manifest>

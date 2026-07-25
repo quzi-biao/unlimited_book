@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  device_admin.xml — Device Owner / Device Admin 能力声明
+  用于 Kiosk 模式：静默 Lock Task（无系统提示）
+-->
+<device-admin>
+    <uses-policies>
+        <!-- Lock Task 静默运行所需的最小权限 -->
+    </uses-policies>
+</device-admin>

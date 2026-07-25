@@ -1,0 +1,329 @@
+/* ============================================================
+   无限之书 Web — 全局设计系统
+   暗色主题 · 深宇宙蓝 + 星光金
+   ============================================================ */
+
+/* ── CSS 变量 ──────────────────────────────────────────────── */
+:root {
+  /* 品牌色 */
+  --color-bg:           #090d1a;
+  --color-bg-2:         #0e1425;
+  --color-bg-3:         #141b32;
+  --color-surface:      rgba(20, 27, 50, 0.72);
+  --color-surface-2:    rgba(30, 40, 72, 0.85);
+  --color-border:       rgba(240, 192, 96, 0.18);
+  --color-border-hover: rgba(240, 192, 96, 0.4);
+
+  /* 强调色 */
+  --color-gold:         #f0c060;
+  --color-gold-dim:     #c89830;
+  --color-gold-glow:    rgba(240, 192, 96, 0.25);
+  --color-blue-accent:  #4a9eff;
+  --color-blue-dim:     rgba(74, 158, 255, 0.15);
+
+  /* 文字 */
+  --color-text:         #e8eaf0;
+  --color-text-2:       #9ca3b4;
+  --color-text-3:       #5a6278;
+  --color-text-gold:    #f0c060;
+
+  /* 状态 */
+  --color-success:      #4ade80;
+  --color-error:        #f87171;
+  --color-warning:      #fbbf24;
+  --color-info:         #60a5fa;
+
+  /* 圆角 */
+  --radius-sm:    6px;
+  --radius-md:    12px;
+  --radius-lg:    18px;
+  --radius-xl:    24px;
+  --radius-full:  9999px;
+
+  /* 间距 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* 字体 */
+  --font-sans:  'Inter', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Noto Serif SC', Georgia, serif;
+  --font-mono:  'JetBrains Mono', 'Fira Code', monospace;
+
+  /* 字号 */
+  --text-xs:   11px;
+  --text-sm:   13px;
+  --text-base: 15px;
+  --text-lg:   17px;
+  --text-xl:   20px;
+  --text-2xl:  24px;
+  --text-3xl:  30px;
+
+  /* 阴影 */
+  --shadow-sm:  0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-md:  0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-lg:  0 8px 40px rgba(0, 0, 0, 0.6);
+  --shadow-gold: 0 0 20px rgba(240, 192, 96, 0.2);
+
+  /* 动画 */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 400ms ease;
+
+  /* 面板宽度 */
+  --shelf-width:     320px;
+  --pagetree-width:  280px;
+  --toolbar-height:  60px;
+  --ttsbar-height:   72px;
+}
+
+/* ── Reset ─────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── 滚动条 ─────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(240, 192, 96, 0.25);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(240, 192, 96, 0.45);
+}
+
+/* ── Glassmorphism 工具类 ───────────────────────────────────── */
+.glass {
+  background: var(--color-surface);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid var(--color-border);
+}
+
+.glass-strong {
+  background: var(--color-surface-2);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  border: 1px solid var(--color-border-hover);
+}
+
+/* ── 按钮基础样式 ───────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  outline: none;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dim));
+  color: #0a0e1a;
+  font-weight: 600;
+  box-shadow: var(--shadow-gold);
+}
+.btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.btn-primary:active { filter: brightness(0.95); transform: translateY(0); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-2);
+  border: 1px solid var(--color-border);
+}
+.btn-ghost:hover {
+  color: var(--color-text);
+  border-color: var(--color-border-hover);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.btn-icon {
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-2);
+  border: none;
+  width: 36px;
+  height: 36px;
+}
+.btn-icon:hover {
+  color: var(--color-text);
+  background: rgba(255, 255, 255, 0.08);
+}
+.btn-icon.active {
+  color: var(--color-gold);
+  background: var(--color-gold-glow);
+}
+
+/* ── 输入框 ────────────────────────────────────────────────── */
+.input {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  padding: var(--space-2) var(--space-4);
+  outline: none;
+  transition: border-color var(--transition-fast);
+  width: 100%;
+}
+.input::placeholder { color: var(--color-text-3); }
+.input:focus {
+  border-color: var(--color-gold);
+  background: rgba(240, 192, 96, 0.06);
+}
+
+/* ── 分隔线 ────────────────────────────────────────────────── */
+.divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: var(--space-4) 0;
+}
+
+/* ── 金色标题 ───────────────────────────────────────────────── */
+.title-gold {
+  color: var(--color-gold);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* ── 徽章 ──────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  background: var(--color-gold-glow);
+  color: var(--color-gold);
+  border: 1px solid rgba(240, 192, 96, 0.3);
+}
+
+/* ── 面板动画 ───────────────────────────────────────────────── */
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes slideInUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes slideInDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}
+
+/* ── 骨架屏 ─────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.05) 25%,
+    rgba(255,255,255,0.1) 50%,
+    rgba(255,255,255,0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* ── 工具提示 ───────────────────────────────────────────────── */
+[data-tooltip] {
+  position: relative;
+}
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-bg-3);
+  color: var(--color-text);
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  z-index: 1000;
+  border: 1px solid var(--color-border);
+}
+[data-tooltip]:hover::after { opacity: 1; }
+
+
+/* ── 星空背景 ───────────────────────────────────────────────── */
+.starfield {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(74, 158, 255, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(240, 192, 96, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 80%, rgba(120, 80, 200, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+}

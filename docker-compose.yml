@@ -1,0 +1,55 @@
+services:
+  flipbook:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: flipbook:latest
+    container_name: flipbook
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    environment:
+      NODE_ENV: production
+      PORT: 8888
+      # 数据库
+      DATABASE_URL: ${DATABASE_URL}
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@flipbook.local}
+      # 阿里云 OSS
+      OSS_ENDPOINT: ${OSS_ENDPOINT}
+      OSS_KEY_ID: ${OSS_KEY_ID}
+      OSS_KEY_SECRET: ${OSS_KEY_SECRET}
+      OSS_BUCKET: ${OSS_BUCKET}
+      OSS_FOLDER: ${OSS_FOLDER}
+      # Gemini API
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_BASE: ${GEMINI_BASE:-https://generativelanguage.googleapis.com/v1beta}
+      # Minimax TTS
+      MINIMAX_API_KEY: ${MINIMAX_API_KEY}
+      MINIMAX_GROUP_ID: ${MINIMAX_GROUP_ID:-}
+      # 图像生成 Provider（gptimage / gemini）
+      IMAGE_PROVIDER: ${IMAGE_PROVIDER:-gptimage}
+      # GPT-Image-2 (yunwu.ai)
+      GPTIMAGE_BASE_URL: ${GPTIMAGE_BASE_URL:-https://yunwu.ai}
+      GPTIMAGE_API_KEY: ${GPTIMAGE_API_KEY}
+      # 微信支付 APIv3（商户API公钥模式）
+      WX_APPID: ${WX_APPID}
+      WX_MCHID: ${WX_MCHID}
+      WX_PUBLIC_KEY_ID: ${WX_PUBLIC_KEY_ID}
+      WX_SERIAL_NO: ${WX_SERIAL_NO}
+      WX_PRIVATE_KEY_PATH: ${WX_PRIVATE_KEY_PATH:-/app/certs/apiclient_key.pem}
+      WX_PUBLIC_KEY_PATH: ${WX_PUBLIC_KEY_PATH:-/app/certs/pub_key.pem}
+      WX_NOTIFY_URL: ${WX_NOTIFY_URL}
+    volumes:
+      # 证书目录挂载（宿主机路径 → 容器内 /app/certs）
+      - /home/ubuntu/flipbook/certs:/app/certs:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8888/api/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s

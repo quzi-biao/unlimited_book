@@ -1,0 +1,97 @@
+/* MarkdownRenderer.module.css */
+
+.root {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+/* ── Headings ── */
+.h1 { font-size: 15px; font-weight: 700; color: #e2e8f0; margin: 10px 0 4px; }
+.h2 { font-size: 14px; font-weight: 600; color: #cbd5e1; margin: 8px 0 4px; }
+.h3 { font-size: 13px; font-weight: 600; color: #94a3b8; margin: 6px 0 4px; }
+
+/* ── Paragraph ── */
+.p {
+  margin: 0 0 8px;
+  color: rgba(255, 255, 255, 0.82);
+}
+.p:last-child { margin-bottom: 0; }
+
+/* ── Bold / Italic ── */
+.strong { font-weight: 700; color: #e2e8f0; }
+.em     { font-style: italic; color: #a5b4fc; }
+
+/* ── Lists ── */
+.ul, .ol {
+  margin: 4px 0 8px;
+  padding-left: 20px;
+}
+.li {
+  margin: 2px 0;
+  color: rgba(255, 255, 255, 0.8);
+}
+.li::marker { color: #818cf8; }
+
+/* ── Blockquote ── */
+.blockquote {
+  margin: 6px 0;
+  padding: 6px 12px;
+  border-left: 3px solid rgba(129, 140, 248, 0.5);
+  background: rgba(99, 102, 241, 0.08);
+  border-radius: 0 6px 6px 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-style: italic;
+}
+
+/* ── Code ── */
+.inlineCode {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.pre {
+  background: rgba(15, 23, 42, 0.8);
+  border-radius: 8px;
+  padding: 10px 14px;
+  overflow-x: auto;
+  margin: 6px 0;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+.pre code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  color: #93c5fd;
+}
+
+/* ── HR ── */
+.hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 8px 0;
+}
+
+/* ── Link (disabled) ── */
+.link {
+  color: #60a5fa;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── KaTeX 公式覆盖（适配深色背景）── */
+.root :global(.katex) {
+  color: #e2e8f0;
+  font-size: 13px;
+}
+.root :global(.katex-display) {
+  margin: 8px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.root :global(.katex-display > .katex) {
+  font-size: 14px;
+}

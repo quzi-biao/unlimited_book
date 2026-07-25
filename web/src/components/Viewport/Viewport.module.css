@@ -1,0 +1,251 @@
+.container {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: crosshair;
+  user-select: none;
+}
+
+.img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+.imgVisible { opacity: 1; }
+
+.imgLoading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── 空状态 ─────────────────────────────────────────────────── */
+.empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(74,158,255,0.05) 0%, transparent 70%);
+}
+.emptyInner {
+  text-align: center;
+  animation: fadeIn 0.6s ease;
+}
+.emptyIcon {
+  width: 72px;
+  height: 72px;
+  display: block;
+  margin: 0 auto 24px;
+  filter: drop-shadow(0 0 24px rgba(240,192,96,0.5));
+  animation: pulse 3s ease infinite;
+  border-radius: 20%;
+  animation: pulse 3s ease infinite;
+}
+.emptyTitle {
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 12px;
+}
+.emptyDesc {
+  font-size: var(--text-base);
+  color: var(--color-text-2);
+  line-height: 1.7;
+}
+
+/* ── Callout（对应 Android AnnotationCallout.kt） ─────────────── */
+.callout {
+  position: absolute;
+  border-radius: 18px;
+  min-width: 260px;
+  max-width: 380px;
+  z-index: 100;
+  animation: fadeInScale 0.18s ease;
+  pointer-events: all;
+  overflow: hidden;
+  /* Android: background rgba(6,8,20,0.95) + border rgba(99,102,241,0.1) */
+  border: 1px solid rgba(99,102,241,0.1) !important;
+}
+
+/* Header — 对应 Android Row(padding=14dp/10dp) */
+.calloutHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+}
+.calloutType {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.08em;
+}
+
+/* Tab 栏（多标注） */
+.calloutTabs {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.calloutTab {
+  font-size: 11px;
+  padding: 3px 11px;
+  border-radius: 7px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: transparent;
+  color: rgba(255,255,255,0.45);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.calloutTabActive {
+  background: rgba(99,102,241,0.22);
+  border-color: rgba(99,102,241,0.55);
+  color: #c7d2fe;
+}
+
+/* Divider */
+.calloutDivider      { height: 1px; background: rgba(255,255,255,0.07); }
+.calloutDividerLight { height: 1px; background: rgba(255,255,255,0.05); }
+
+/* Body */
+.calloutBody {
+  padding: 16px 18px;
+  min-height: 100px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.calloutText {
+  font-size: 14px;
+  color: rgba(255,255,255,0.85);
+  line-height: 1.65;
+  font-family: var(--font-serif);
+  margin: 0;
+}
+
+/* MarkdownRenderer 在 callout 内的覆盖 */
+.calloutMarkdown {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Loading 状态（pending） */
+.calloutLoading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255,255,255,0.5);
+  font-size: 13px;
+}
+.calloutSpinner {
+  width: 18px; height: 18px;
+  border: 2px solid rgba(129,140,248,0.3);
+  border-top-color: #818cf8;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+.calloutSpinnerSm {
+  width: 12px; height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Footer */
+.calloutFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+}
+/* 深入探索按钮（对应 Android deepBtn / deepBtnLoaded） */
+.calloutDeepBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid;
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.calloutDeepBtn:hover { opacity: 0.8; }
+
+/* ── 处理中徽章 ────────────────────────────────────────────── */
+.processingBadge {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface-2);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 8px 16px;
+  font-size: var(--text-sm);
+  color: var(--color-text-2);
+  animation: fadeInScale 0.2s ease;
+}
+.processingRing {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(240,192,96,0.3);
+  border-top-color: var(--color-gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── 翻页按钮 ─────────────────────────────────────────────── */
+.navBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(10,12,24,0.65);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s, background 0.2s;
+  z-index: 50;
+}
+.navBtn:hover {
+  background: rgba(240,192,96,0.15);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.navBtnLeft  { left: 12px; }
+.navBtnRight { right: 12px; }
+
+/* 鼠标悬停容器时才显示 */
+.container:hover .navBtn { opacity: 1; }
+.navBtn:active { transform: translateY(-50%) scale(0.92); }

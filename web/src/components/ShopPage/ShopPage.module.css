@@ -1,0 +1,131 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 499;
+  animation: fadeIn 0.2s ease;
+}
+
+.panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 520px;
+  max-width: 95vw;
+  border-radius: var(--radius-xl);
+  z-index: 500;
+  animation: fadeInScale 0.25s ease;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
+}
+.title {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--color-gold);
+}
+
+.center {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+.body { padding: 24px; }
+
+.subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-2);
+  margin-bottom: var(--space-5);
+}
+
+.planGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.planCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-5) var(--space-3);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-align: center;
+}
+.planCard:hover { border-color: var(--color-border-hover); transform: translateY(-2px); }
+.planSelected {
+  border-color: var(--color-gold);
+  background: var(--color-gold-glow);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-gold);
+}
+
+.planPoints {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--color-gold);
+}
+.planPointsLabel {
+  font-size: var(--text-xs);
+  color: var(--color-text-3);
+  margin-bottom: var(--space-2);
+}
+.planName {
+  font-size: var(--text-sm);
+  color: var(--color-text-2);
+  margin-bottom: var(--space-2);
+}
+.planPrice {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.payBtn {
+  width: 100%;
+  height: 48px;
+  font-size: var(--text-base);
+}
+
+/* 二维码 */
+.qrBody {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+.qrHint {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text);
+}
+.qrWrap {
+  padding: 16px;
+  background: var(--color-gold);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-gold);
+}
+.qrImg {
+  display: block;
+  width: 200px;
+  height: 200px;
+  border-radius: var(--radius-sm);
+}
+.qrDesc {
+  font-size: var(--text-sm);
+  color: var(--color-text-3);
+  text-align: center;
+}

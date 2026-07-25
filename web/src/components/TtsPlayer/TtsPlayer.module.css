@@ -1,0 +1,219 @@
+/* ── TtsPlayer —— 对应 Android TtsPlayer.kt ───────────────── */
+
+/* 容器：右下角悬浮，z-index 高于 ToolBar */
+.wrapper {
+  position: fixed;
+  bottom: 20px;
+  right: 24px;
+  z-index: 350;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: none; /* 内部元素自行开启 */
+}
+
+/* ── 圆形按钮（idle / paused / error）─────────────────────── */
+.roundBtn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  pointer-events: all;
+}
+.roundBtn:hover { transform: scale(1.08); box-shadow: 0 6px 22px rgba(0,0,0,0.5); }
+.roundBtn:active { transform: scale(0.95); }
+
+.roundBtnIdle {
+  background: rgba(255,255,255,0.10);
+  color: var(--color-text);
+  border: 1px solid rgba(255,255,255,0.14);
+}
+.roundBtnPaused {
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  color: #fff;
+}
+.roundBtnError {
+  background: #ef4444;
+  color: #fff;
+}
+
+/* ── 胶囊弹窗 ─────────────────────────────────────────────── */
+.pill {
+  pointer-events: all;
+  width: clamp(270px, 80vw, 360px);
+  background: rgba(18, 16, 30, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 20px;
+  padding: 12px 10px 10px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+
+  /* 入场前 */
+  opacity: 0;
+  transform: translateY(12px) scale(0.92);
+  transition:
+    opacity 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+    transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.pillEntered {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* 胶囊左侧内容列 */
+.pillContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 标题行 */
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 6px;
+  padding: 2px 4px;
+  overflow: hidden;
+}
+.titleRowClickable {
+  cursor: pointer;
+}
+.titleRowClickable:hover {
+  background: rgba(255,255,255,0.06);
+}
+.titleText {
+  font-size: 13px;
+  color: rgba(255,255,255,0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.annBadge {
+  font-size: 10px;
+  color: #a78bfa;
+  background: rgba(167,139,250,0.15);
+  border: 1px solid rgba(167,139,250,0.35);
+  border-radius: 4px;
+  padding: 1px 6px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ── 进度条 ─────────────────────────────────────────────────── */
+.progressTrack {
+  position: relative;
+  height: 14px;
+  display: flex;
+  align-items: center;
+}
+.progressTrackSeekable { cursor: pointer; }
+
+.progressBg {
+  position: absolute;
+  left: 0; right: 0;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.12);
+}
+.progressFill {
+  position: absolute;
+  left: 0;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #818cf8, #6366f1);
+  transition: width 0.2s linear;
+}
+.progressThumb {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  top: 50%;
+  margin-top: -5px;
+  pointer-events: none;
+}
+
+/* ── 底部元行：倍速 + 时间 ──────────────────────────────────── */
+.metaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.rateBtn {
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 6px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.rateBtn:hover { background: rgba(255,255,255,0.12); }
+
+.timeText {
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+}
+
+/* ── 胶囊播放/暂停按钮 ─────────────────────────────────────── */
+.pillPlayBtn {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease;
+}
+.pillPlayBtn:hover { transform: scale(1.08); }
+.pillPlayBtn:active { transform: scale(0.95); }
+
+.pillPlayBtnLoading {
+  background: rgba(255,255,255,0.10);
+  color: #818cf8;
+  cursor: default;
+}
+.pillPlayBtnPlaying {
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  color: #fff;
+}
+.pillPlayBtnPaused {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: #fff;
+}
+
+/* loading spinner in pill */
+.pillSpinner {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid rgba(129,140,248,0.25);
+  border-top-color: #818cf8;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

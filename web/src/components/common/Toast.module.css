@@ -1,0 +1,55 @@
+.container {
+  position: fixed;
+  bottom: calc(var(--ttsbar-height) + 16px);
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  backdrop-filter: blur(16px);
+  border: 1px solid transparent;
+  animation: fadeInScale 0.2s ease;
+  box-shadow: var(--shadow-md);
+  min-width: 200px;
+  max-width: 360px;
+}
+
+.info {
+  background: rgba(74, 158, 255, 0.15);
+  border-color: rgba(74, 158, 255, 0.3);
+  color: #93c5fd;
+}
+.success {
+  background: rgba(74, 222, 128, 0.15);
+  border-color: rgba(74, 222, 128, 0.3);
+  color: #86efac;
+}
+.error {
+  background: rgba(248, 113, 113, 0.15);
+  border-color: rgba(248, 113, 113, 0.3);
+  color: #fca5a5;
+}
+.warning {
+  background: rgba(251, 191, 36, 0.15);
+  border-color: rgba(251, 191, 36, 0.3);
+  color: #fde68a;
+}
+
+.icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.msg {
+  flex: 1;
+}

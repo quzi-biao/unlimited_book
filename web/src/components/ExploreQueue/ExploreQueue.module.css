@@ -1,0 +1,208 @@
+/* ─── ExploreQueueBtn pill（对应 Android ExploreQueueBtn.kt）─────────────── */
+
+/* 位置由 App.jsx 父容器的 CSS 控制（right-0 top-XX），此处提供胶囊本体样式 */
+.pill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border, rgba(99,102,241,0.45));
+  background: var(--bg, rgba(22,18,46,0.85));
+  color: var(--text, #c7d2fe);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  z-index: 0;
+}
+.pill:hover {
+  background: rgba(30,27,60,0.9);
+}
+.pillOpen {
+  background: #111827;
+}
+
+/* 呼吸光晕（对应 Android BreathingGlow）*/
+.pillGlow {
+  position: absolute;
+  inset: -6px;
+  border-radius: 26px;
+  background: radial-gradient(ellipse at center, var(--glow, #6366f1) 0%, transparent 70%);
+  opacity: 0.25;
+  pointer-events: none;
+  animation: pillBreath 1.9s ease-in-out infinite;
+  z-index: -1;
+}
+.pill[style*="--glow:#fb923c"] .pillGlow {
+  animation-duration: 1.6s;
+}
+@keyframes pillBreath {
+  0%, 100% { opacity: 0.18; transform: scale(0.95); }
+  50%       { opacity: 0.38; transform: scale(1.05); }
+}
+
+/* 旋转图标（loading 时）*/
+.pillSpinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.12);
+  border-top-color: var(--accent, #818cf8);
+  border-left-color: var(--accent, #818cf8);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 静态圆点（idle 时）*/
+.pillDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.pillLabel {
+  font-size: 13px;
+  color: var(--text, #c7d2fe);
+}
+.pillCount {
+  font-size: 12px;
+}
+
+/* ─── Panel ─────────────────────────────────────────────────────────────── */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 299;
+}
+
+.panel {
+  position: fixed;
+  right: 24px;
+  top: 72px;     /* 右上角，toolbar 下方 */
+  width: 340px;
+  max-height: 420px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  z-index: 320;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideDown 0.2s ease;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+.headerTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.taskList {
+  list-style: none;
+  padding: 8px 0;
+  margin: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.taskItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  transition: background 0.15s;
+}
+.taskItem:hover {
+  background: var(--color-bg-3);
+}
+
+.taskIcon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--color-accent);
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.12);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.taskBody {
+  flex: 1;
+  min-width: 0;
+}
+.taskLabel {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+.taskSub {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin: 2px 0 0;
+}
+.failed .taskSub { color: #f87171; }
+
+.taskActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.taskViewBtn {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(251,146,60,0.4);
+  background: rgba(251,146,60,0.1);
+  color: #fed7aa;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.taskViewBtn:hover {
+  background: rgba(251,146,60,0.2);
+}
+
+.taskRetryBtn {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(248,113,113,0.4);
+  background: rgba(248,113,113,0.1);
+  color: #fca5a5;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.taskRetryBtn:hover {
+  background: rgba(248,113,113,0.2);
+}

@@ -1,0 +1,24 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.ring {
+  border-radius: 50%;
+  border: 3px solid rgba(240, 192, 96, 0.2);
+  border-top-color: var(--color-gold);
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.text {
+  font-size: var(--text-sm);
+  color: var(--color-text-2);
+  text-align: center;
+}
