@@ -111,6 +111,10 @@
 
 /* 搜索与朗读合计占图片宽度的五分之三，居中后左右各留五分之一。 */
 @media (max-width: 1024px), (hover: none) and (pointer: coarse) {
+  /* iOS 对小于 16px 的输入框自动放大，导致顶部控件离开可视区。 */
+  .search {
+    font-size: 16px;
+  }
   .toolbar {
     box-sizing: border-box;
     width: calc(var(--reader-image-width, 100vw) * 0.6);
