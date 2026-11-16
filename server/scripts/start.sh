@@ -4,6 +4,9 @@
 
 set -e
 
+: "${DATABASE_URL:?必须设置 DATABASE_URL}"
+: "${JWT_SECRET:?必须设置 JWT_SECRET}"
+
 DB_HOST=$(echo "$DATABASE_URL" | sed 's|.*@||' | cut -d: -f1)
 DB_PORT=$(echo "$DATABASE_URL" | sed 's|.*@||' | sed 's|/.*||' | cut -d: -f2)
 DB_PORT=${DB_PORT:-5432}
@@ -22,8 +25,8 @@ until node -e "
   s.on('timeout', () => process.exit(1));
 " 2>/dev/null; do
   if [ $WAITED -ge $MAX_WAIT ]; then
-    echo "[start] 等待超时（${MAX_WAIT}s），数据库仍不可达，强制启动"
-    break
+    echo "[start] 等待超时（${MAX_WAIT}s），数据库仍不可达，停止启动"
+    exit 1
   fi
   echo "[start] 数据库未就绪，3s 后重试... (${WAITED}/${MAX_WAIT}s)"
   sleep 3
@@ -41,10 +44,11 @@ else
   echo "[start] 首次启动，执行完整初始化..."
 
   # Schema 同步（幂等，首次必跑）
-  pnpm exec prisma db push --accept-data-loss 2>&1 || echo "[start] prisma db push 失败（可能已同步），继续..."
+  pnpm exec prisma db push --skip-generate
 
   # Seed 基础数据（管理员账号、全局配置、套餐等，幂等）
-  node scripts/seed.js 2>&1 || echo "[start] seed.js 失败，继续..."
+  node scripts/seed.js
+  node scripts/seed-prompt-style.js
 
   # 话题数据：只在表为空时才种入
   TOPIC_COUNT=$(node -e "
@@ -55,7 +59,11 @@ p.topic.count().then(n => { console.log(n); p.\$disconnect(); }).catch(() => { c
 
   if [ "$TOPIC_COUNT" = "0" ]; then
     echo "[start] 话题表为空，开始种入话题数据..."
-    node scripts/seed-topics.js 2>&1 || echo "[start] seed-topics.js 失败，继续..."
+    if [ -f scripts/seed-topics.js ]; then
+      node scripts/seed-topics.js
+    else
+      echo "[start] 仓库未提供话题种子数据，请在管理后台添加话题和分类。"
+    fi
   else
     echo "[start] 话题表已有 ${TOPIC_COUNT} 条记录，跳过 seed-topics"
   fi

@@ -1,18 +1,10 @@
 package com.flipbook.ai.flipbook.migrated.hooks
 
 import android.app.Activity
-import android.app.PendingIntent
-import android.app.WallpaperManager
-import android.app.admin.DevicePolicyManager
-import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageInstaller
-import android.graphics.Bitmap
-import android.graphics.Color
 import android.os.Build
 import android.os.Environment
-import android.util.DisplayMetrics
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,19 +12,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.FileProvider
-import com.flipbook.ai.AppUpdateReceiver
 import com.flipbook.ai.BuildConfig
-import com.flipbook.ai.KioskAdminReceiver
 import com.flipbook.ai.flipbook.migrated.api.deviceApi
 import com.flipbook.ai.flipbook.migrated.api.otaApi
 import com.flipbook.ai.flipbook.migrated.components.otaupdate.OtaBadgeState
 import com.flipbook.ai.flipbook.migrated.components.otaupdate.OtaUpdateInfo
 import com.flipbook.ai.flipbook.migrated.utils.getInstalledAppVersion
+import com.flipbook.ai.flipbook.migrated.utils.createInstallStatusCallback
 import com.google.gson.JsonObject
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** 对应 WebView: hooks/useOtaUpdate.js */
@@ -50,7 +39,8 @@ internal constructor(
     private var downloadedFile by mutableStateOf<File?>(null)
 
     fun check() {
-        if (loading) return
+        // 后台现有升级通道只发布平板 APK，手机版不能下载或安装该包。
+        if (BuildConfig.PHONE_UI || loading) return
         scope.launch {
             loading = true
             error = null
@@ -73,6 +63,7 @@ internal constructor(
     }
 
     fun startUpdate() {
+        if (BuildConfig.PHONE_UI) return
         val update = badgeState.update ?: return
         val phase = badgeState.phase
         if (phase == "downloading" || phase == "installing") return
@@ -99,6 +90,7 @@ internal constructor(
     }
 
     fun restartInstaller() {
+        if (BuildConfig.PHONE_UI) return
         val file = downloadedFile
         if (file != null && file.exists()) {
             scope.launch { installViaSession(file) }
@@ -124,7 +116,7 @@ internal constructor(
      * - STATUS_PENDING_USER_ACTION 时才展示系统确认弹框
      * - STATUS_SUCCESS 时直接重启（配合 ACTION_MY_PACKAGE_REPLACED 岗位）
      */
-    private suspend fun installViaSession(file: File) {
+    private fun installViaSession(file: File) {
         // 退出 LockTask 模式（如果处于的话）
         (context as? Activity)?.runCatching { stopLockTask() }
 
@@ -144,74 +136,21 @@ internal constructor(
                             }
                         }
 
-        // 安装完成的回调会发送到 AppUpdateReceiver
-        val completionIntent =
-                Intent(context, AppUpdateReceiver::class.java).apply {
-                    action = AppUpdateReceiver.ACTION_INSTALL_COMPLETE
-                }
-        val pendingIntent =
-                PendingIntent.getBroadcast(
-                        context,
-                        6703,
-                        completionIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                )
-
         val sessionId = packageInstaller.createSession(params)
-        packageInstaller.openSession(sessionId).use { session ->
-            session.openWrite("package", 0, file.length()).use { out ->
-                file.inputStream().use { it.copyTo(out) }
-                session.fsync(out)
+        try {
+            val callback = createInstallStatusCallback(context, sessionId)
+            packageInstaller.openSession(sessionId).use { session ->
+                session.openWrite("package", 0, file.length()).use { out ->
+                    file.inputStream().use { it.copyTo(out) }
+                    session.fsync(out)
+                }
+                // 保持应用自己的安装提示；升级会撤销 FileProvider 的临时读权限，
+                // 不能依赖外部相册显示遮罩，否则会出现“文件已损坏”的误报。
+                session.commit(callback.intentSender)
             }
-            // 安装前打开全屏图片（独立进程），遮挡桌面，等待图片查看器完全启动后再提交
-            showCoverImageForInstall()
-            // commit 是异步的，结果通过 pendingIntent 回调
-            session.commit(pendingIntent.intentSender)
-        }
-    }
-
-    /**
-     * OTA 安装前打开全屏图片遮挡桌面。
-     *
-     * 核心思路：用 Intent.ACTION_VIEW 打开系统图片查看器（独立进程/包）。
-     * 当我们的 App 进程因 APK 安装被杀时，图片查看器进程仍然存活，
-     * 屏幕上持续显示全屏图片，用户看不到桌面。
-     * App 重启后 MainActivity 来到前台，图片查看器自动退到后台。
-     *
-     * @param delayMs 等待图片查看器完全启动的时间（默认 800ms）
-     */
-    private suspend fun showCoverImageForInstall(delayMs: Long = 800L) {
-        runCatching {
-            // 生成全屏纯黑 JPEG（与屏幕同等分辨率）
-            val metrics = DisplayMetrics()
-            @Suppress("DEPRECATION")
-            (context as? Activity)?.windowManager?.defaultDisplay?.getMetrics(metrics)
-            val w = if (metrics.widthPixels > 0) metrics.widthPixels else 1920
-            val h = if (metrics.heightPixels > 0) metrics.heightPixels else 1080
-            val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565)
-            bitmap.eraseColor(Color.BLACK)
-
-            // 保存到 cacheDir（file_paths.xml 已包含 cache-path）
-            val file = File(context.cacheDir, "ota_cover.jpg")
-            file.outputStream().use { out ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
-            }
-            bitmap.recycle()
-
-            // 通过 FileProvider 获取 URI，用系统图片查看器全屏打开
-            val uri = FileProvider.getUriForFile(
-                context,
-                "${BuildConfig.APPLICATION_ID}.fileprovider",
-                file,
-            )
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, "image/jpeg")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            context.startActivity(intent)
-            // 等待图片查看器完全启动，再提交安装
-            delay(delayMs)
+        } catch (error: Exception) {
+            runCatching { packageInstaller.abandonSession(sessionId) }
+            throw error
         }
     }
 }

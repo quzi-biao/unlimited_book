@@ -1,15 +1,20 @@
 import { createHash } from 'crypto';
+import { DEFAULT_IMAGE_SIZE, LEGACY_IMAGE_SIZE } from './ai/imageSize.js';
 
 /**
  * 生成页的 promptHash：SHA256(prompt + selectionImageBase64)
  * 用于缓存命中检查，避免重复调用 AI
  * @param {string} prompt
  * @param {string} [selectionImageBase64]  data URL 或纯 base64
+ * @param {string} [imageSize] 输出画幅；仅显式旧尺寸沿用历史缓存键
  * @returns {string} hex hash
  */
-export function buildPromptHash(prompt, selectionImageBase64 = '') {
+export function buildPromptHash(prompt, selectionImageBase64 = '', imageSize = DEFAULT_IMAGE_SIZE) {
+  const fingerprint = imageSize === LEGACY_IMAGE_SIZE
+    ? prompt + selectionImageBase64
+    : JSON.stringify(['image-size-v2', imageSize, prompt, selectionImageBase64]);
   return createHash('sha256')
-    .update(prompt + selectionImageBase64)
+    .update(fingerprint)
     .digest('hex');
 }
 

@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
@@ -11,7 +10,7 @@ export default defineConfig({
     port: 5175,
     proxy: {
       '/api': {
-        target: 'https://101.34.87.172:8888',
+        target: process.env.VITE_API_TARGET || 'http://localhost:8888',
         changeOrigin: true,
         secure: false,          // 跳过自签名证书校验
       },

@@ -18,8 +18,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
+/** 区域解读任务在界面上的三种状态。 */
+enum class RegionExplainStatus { Loading, Done, Failed }
+
 @Composable
-internal fun RegionExplainStatusButton(
+fun RegionExplainStatusButton(
     status: RegionExplainStatus,
     onView: () -> Unit,
     modifier: Modifier = Modifier,

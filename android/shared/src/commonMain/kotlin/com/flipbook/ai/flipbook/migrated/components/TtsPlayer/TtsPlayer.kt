@@ -63,6 +63,10 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import kotlinx.coroutines.delay
 import kotlin.math.floor
+import com.flipbook.ai.flipbook.migrated.components.common.LocalCompactLayout
+import com.flipbook.ai.flipbook.migrated.components.common.LocalPhoneLayout
+import com.flipbook.ai.flipbook.migrated.components.common.PhoneReaderToolbarHeight
+import com.flipbook.ai.flipbook.migrated.components.common.PhoneReaderToolbarBottomInset
 
 private const val COLLAPSE_MS = 260L
 
@@ -90,8 +94,11 @@ fun TtsPlayer(
     /** 操作引导控制器，用于将圆形播放按键的30准边界注册到引导系统 */
     guideController: GuideController? = null,
     modifier: Modifier = Modifier,
+    showRoundButton: Boolean = true,
 ) {
     if (!pageVisible) return
+    val compact = LocalCompactLayout.current
+    val phone = LocalPhoneLayout.current
 
     val isLoading = state.playbackState == "loading"
     val isPlaying = state.playbackState == "playing"
@@ -139,8 +146,8 @@ fun TtsPlayer(
         label = "tts-pill-offset",
     )
 
-    LaunchedEffect(isPlaying, isLoading) {
-        if (isPlaying || isLoading) {
+    LaunchedEffect(isPlaying, isLoading, isPaused, showRoundButton) {
+        if (isPlaying || isLoading || (!showRoundButton && isPaused)) {
             collapsing = false
             expanded = true
         } else if (expanded) {
@@ -163,11 +170,16 @@ fun TtsPlayer(
 
     Box(
         modifier = modifier
-            .padding(end = 16.dp, bottom = 20.dp),
+            .padding(
+                end = if (phone) 20.dp else 16.dp,
+                bottom = if (phone) {
+                    PhoneReaderToolbarBottomInset + if (expanded) PhoneReaderToolbarHeight + 10.dp else 8.dp
+                } else if (compact && expanded) 136.dp else 20.dp,
+            ),
         contentAlignment = Alignment.BottomEnd,
     ) {
         if (!expanded) {
-            IdleRoundButton(
+            if (showRoundButton) IdleRoundButton(
                 isPaused = isPaused,
                 isError = isError,
                 onClick = onRoundClick,
@@ -354,7 +366,7 @@ private fun IdleRoundButton(
     val fg = if (isPaused || isError) Color.White else TtsPlayerStyle.IdleText
 
     androidx.compose.material3.Surface(
-        modifier = modifier.size(52.dp),
+        modifier = modifier.size(if (LocalPhoneLayout.current) 48.dp else 52.dp),
         shape = CircleShape,
         shadowElevation = 8.dp,
         color = Color.Transparent,

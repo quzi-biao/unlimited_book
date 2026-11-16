@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 import { getFingerprint } from '../utils/fingerprint.js';
 import { getToken, setToken, setDeviceId, getDeviceId } from '../utils/storage.js';
 import { registerDevice, heartbeat, getDeviceInfo } from '../api/device.js';
+import { getNativeDevice } from '../utils/nativeDevice.js';
 
 const AuthContext = createContext(null);
 
@@ -15,9 +16,13 @@ export function AuthProvider({ children }) {
   const [loading,  setLoading]    = useState(true);
   const [error,    setError]      = useState(null);
   const heartbeatRef = useRef(null);
+  const initializingRef = useRef(false);
 
   /** 设备注册/续签 */
   const initAuth = useCallback(async () => {
+    // StrictMode 会重复执行初始化 effect；同一时刻只允许一次设备注册。
+    if (initializingRef.current) return;
+    initializingRef.current = true;
     try {
       setLoading(true);
       setError(null);
@@ -31,10 +36,11 @@ export function AuthProvider({ children }) {
       }
       if (!fp) throw new Error('无法获取设备指纹，请刷新页面重试');
 
+      const nativeDevice = getNativeDevice();
       const res = await registerDevice(fp, {
-        appVersion:  'web-1.0',
+        appVersion:  nativeDevice?.appVersion || 'web-1.0',
         deviceModel: navigator.userAgent.slice(0, 100),
-        osVersion:   navigator.platform || 'web',
+        osVersion:   nativeDevice?.osVersion || navigator.platform || 'web',
       });
 
       setToken(res.token);
@@ -46,6 +52,7 @@ export function AuthProvider({ children }) {
       setError(err.message);
       console.error('[Auth] 设备注册失败:', err);
     } finally {
+      initializingRef.current = false;
       setLoading(false);
     }
   }, []);
@@ -67,7 +74,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!token) return;
     heartbeatRef.current = setInterval(() => {
-      heartbeat('web-1.0').catch(() => {});
+      heartbeat(getNativeDevice()?.appVersion || 'web-1.0').catch(() => {});
     }, 60_000);
     return () => clearInterval(heartbeatRef.current);
   }, [token]);

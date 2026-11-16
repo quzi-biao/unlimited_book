@@ -1,6 +1,7 @@
 package com.flipbook.ai.flipbook.migrated.components.explanationpanel
 
 import android.content.Context
+import com.flipbook.ai.flipbook.migrated.components.common.LocalCompactLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -52,6 +53,7 @@ fun ExplanationPanel(
     modifier: Modifier = Modifier,
 ) {
     if (!open || pageId.isNullOrBlank()) return
+    val compact = LocalCompactLayout.current
     val context = LocalContext.current.applicationContext
     var content by remember(pageId) { mutableStateOf("") }
     var loading by remember(pageId) { mutableStateOf(false) }
@@ -85,8 +87,8 @@ fun ExplanationPanel(
     Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
-                .padding(start = 20.dp, bottom = 90.dp)
-                .fillMaxWidth(0.5f)
+                .padding(start = 20.dp, end = if (compact) 20.dp else 0.dp, bottom = 90.dp)
+                .fillMaxWidth(if (compact) 1f else 0.5f)
                 .align(Alignment.BottomStart)
                 .background(Color(0xF2111827), RoundedCornerShape(14.dp))
                 .border(1.dp, Color(0x2FFFFFFF), RoundedCornerShape(14.dp)),
@@ -98,7 +100,7 @@ fun ExplanationPanel(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(Icons.Rounded.DragHandle, contentDescription = null, tint = Color(0xFF9CA3AF))
                     Icon(Icons.Rounded.MenuBook, contentDescription = null, tint = Color(0xFF9CA3AF))
                     Text(

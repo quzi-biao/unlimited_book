@@ -7,8 +7,6 @@ import styles from './AnnotationLayer.module.css';
 export function AnnotationLayer({ annotations, imgRef, activeAnnotationId, ttsState, ttsSrcId, calloutOpen, onDotClick }) {
   if (!imgRef.current || !annotations.length) return null;
 
-  const imgRect = imgRef.current.getBoundingClientRect();
-
   // 当前激活/TTS 播放中的标注，用于矩形高亮
   const activeAnn = annotations.find((a) => a.id === activeAnnotationId);
   const ttsAnn    = !calloutOpen && ttsSrcId ? annotations.find((a) => a.id === ttsSrcId) : null;
@@ -37,8 +35,9 @@ export function AnnotationLayer({ annotations, imgRef, activeAnnotationId, ttsSt
 
       {/* 标注圆点 */}
       {annotations.map((ann) => {
-        const cx = (ann.x + (ann.w || 0) / 2) * imgRect.width;
-        const cy = (ann.y + (ann.h || 0) / 2) * imgRect.height;
+        // 与图片共用容器百分比，旋转或放大时不依赖上一帧的像素尺寸。
+        const cx = `${(ann.x + (ann.w || 0) / 2) * 100}%`;
+        const cy = `${(ann.y + (ann.h || 0) / 2) * 100}%`;
         const isActive   = ann.id === activeAnnotationId;
         const isTtsPlay  = !calloutOpen && ann.id === ttsSrcId && ttsState === 'playing';
         const isTtsPause = !calloutOpen && ann.id === ttsSrcId && ttsState === 'paused';

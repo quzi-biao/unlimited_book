@@ -1,6 +1,5 @@
 package com.flipbook.ai.flipbook.migrated.components.common
 
-import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -60,11 +59,13 @@ data class ActiveGuideStep(
  * UI 元素调用 [registerTarget] 上报坐标；
  * [GuideOverlay] 读取 [activeStep] 渲染引导浮层。
  */
-class GuideController(private val context: Context) {
-    private val prefs = context.getSharedPreferences("onboarding_prefs", Context.MODE_PRIVATE)
+class GuideController(
+    initiallyComplete: Boolean,
+    private val saveCompletion: (Boolean) -> Unit,
+) {
 
     /** 引导流程是否已完成（持久化） */
-    var isOnboardingComplete by mutableStateOf(prefs.getBoolean("complete", false))
+    var isOnboardingComplete by mutableStateOf(initiallyComplete)
         private set
 
     /** 已注册的 UI 目标坐标 key → bounds */
@@ -136,7 +137,7 @@ class GuideController(private val context: Context) {
     fun completeOnboarding() {
         isVisible = false
         isOnboardingComplete = true
-        prefs.edit().putBoolean("complete", true).apply()
+        saveCompletion(true)
     }
 
     /** 临时隐藏引导（不标记完成，重启后继续） */
@@ -145,8 +146,3 @@ class GuideController(private val context: Context) {
 
 /** 通过 CompositionLocal 注入 GuideController */
 val LocalGuideController = staticCompositionLocalOf<GuideController?> { null }
-
-/** 创建并记忆 GuideController（传入 applicationContext 避免泄漏） */
-@Composable
-fun rememberGuideController(context: Context): GuideController =
-    remember(context) { GuideController(context) }

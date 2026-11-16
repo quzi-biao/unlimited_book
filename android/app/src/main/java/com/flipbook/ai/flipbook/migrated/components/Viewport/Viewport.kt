@@ -36,7 +36,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.hypot
-import coil.compose.AsyncImage
 import androidx.compose.ui.graphics.graphicsLayer
 import com.flipbook.ai.flipbook.migrated.api.aiApi
 import com.flipbook.ai.flipbook.migrated.api.annotationsApi
@@ -67,12 +66,6 @@ private data class CalloutState(
     val boxPx: PixelBox,
     val selectionTaskId: Long? = null,
 )
-
-internal enum class RegionExplainStatus {
-    Loading,
-    Done,
-    Failed,
-}
 
 private data class RegionExplainTask(
     val id: Long,
@@ -470,7 +463,7 @@ fun Viewport(
 
         children()
 
-        AsyncImage(
+        ReaderViewportImage(
             model = displayImageSrc,
             contentDescription = null,
             onSuccess = { state -> 

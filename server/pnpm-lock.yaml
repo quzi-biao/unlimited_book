@@ -35,6 +35,9 @@ importers:
       jsonwebtoken:
         specifier: ^9.0.2
         version: 9.0.3
+      mint-filter:
+        specifier: ^4.0.3
+        version: 4.0.3
       morgan:
         specifier: ^1.10.0
         version: 1.10.1
@@ -663,6 +666,9 @@ packages:
 
   minimist@1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
+
+  mint-filter@4.0.3:
+    resolution: {integrity: sha512-CKh2zKv9oFHEmYCXFk5REG2480FBNYixK+hw0mlRd/TgDJVhPpRhHPNhWa3Q6zF1tpE2q7w7y+Ylu1YJusXDpA==}
 
   mkdirp@0.5.6:
     resolution: {integrity: sha512-FP+p8RB8OWpF3YZBCrP5gtADmtXApB5AMLn+vdyA+PyxCjrCs00mjyUozssO33cwDeT3wNGdLxJ5M//YqtHAJw==}
@@ -1560,6 +1566,8 @@ snapshots:
   mime@2.6.0: {}
 
   minimist@1.2.8: {}
+
+  mint-filter@4.0.3: {}
 
   mkdirp@0.5.6:
     dependencies:

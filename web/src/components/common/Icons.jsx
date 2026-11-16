@@ -173,7 +173,7 @@ export function Icon({ name, size = 20, color = 'currentColor', className = '', 
 export function AppLogo({ size = 32, className = '' }) {
   return (
     <img
-      src="/app-logo.png"
+      src={`${import.meta.env.BASE_URL}app-logo.png`}
       alt="无限之书"
       width={size}
       height={size}

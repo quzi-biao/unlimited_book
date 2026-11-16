@@ -1,13 +1,33 @@
 import OSS from 'ali-oss';
 import { randomUUID } from 'crypto';
+import sharp from 'sharp';
+import { readImageBuffer } from './imageSource.js';
+import { saveLocalAsset } from './localAssets.js';
 
-const client = new OSS({
-  endpoint:        process.env.OSS_ENDPOINT,
-  accessKeyId:     process.env.OSS_KEY_ID,
-  accessKeySecret: process.env.OSS_KEY_SECRET,
-  bucket:          process.env.OSS_BUCKET,
-  timeout:         '300s',   // 默认超时 5 分钟（ali-oss 默认 60s 对大图不够）
-});
+let client = null;
+
+/**
+ * 首次上传时初始化 OSS，允许未配置云存储的本地后台正常启动。
+ * @returns {OSS} 已配置的 OSS 客户端
+ */
+function getClient() {
+  if (client) return client;
+  const required = ['OSS_ENDPOINT', 'OSS_KEY_ID', 'OSS_KEY_SECRET', 'OSS_BUCKET'];
+  const missing = required.filter((key) => !process.env[key]);
+  if (missing.length) {
+    const error = new Error(`OSS 未配置：${missing.join(', ')}`);
+    error.status = 503;
+    throw error;
+  }
+  client = new OSS({
+    endpoint: process.env.OSS_ENDPOINT,
+    accessKeyId: process.env.OSS_KEY_ID,
+    accessKeySecret: process.env.OSS_KEY_SECRET,
+    bucket: process.env.OSS_BUCKET,
+    timeout: '300s',
+  });
+  return client;
+}
 
 const FOLDER = process.env.OSS_FOLDER || 'flipbook';
 
@@ -35,8 +55,9 @@ export async function uploadBase64(base64, subdir = 'pages', userId = 'anon') {
   const ossKey   = `${FOLDER}/${subdir}/${userId}/${filename}`;
 
   const buffer = Buffer.from(b64Data, 'base64');
+  if (process.env.LOCAL_UPLOAD_DIR) return saveLocalAsset(buffer, ext);
 
-  await client.put(ossKey, buffer, {
+  await getClient().put(ossKey, buffer, {
     timeout: 300000,            // 5 分钟，与 constructor timeout 对齐
     headers: {
       'Content-Type':       mimeType,
@@ -57,6 +78,11 @@ export async function uploadBase64(base64, subdir = 'pages', userId = 'anon') {
  * @returns {Promise<string>} OSS URL
  */
 export async function uploadFromUrl(imageUrl, subdir = 'pages', userId = 'anon') {
+  if (process.env.LOCAL_UPLOAD_DIR) {
+    const buffer = await readImageBuffer(imageUrl);
+    const { format } = await sharp(buffer).metadata();
+    return saveLocalAsset(buffer, format || 'png');
+  }
   const res    = await fetch(imageUrl);
   const buffer = Buffer.from(await res.arrayBuffer());
   const ct     = res.headers.get('content-type') || 'image/png';
@@ -65,7 +91,7 @@ export async function uploadFromUrl(imageUrl, subdir = 'pages', userId = 'anon')
   const filename = `${randomUUID()}.${ext}`;
   const ossKey   = `${FOLDER}/${subdir}/${userId}/${filename}`;
 
-  await client.put(ossKey, buffer, {
+  await getClient().put(ossKey, buffer, {
     headers: {
       'Content-Type':      ct,
       'x-oss-object-acl': 'public-read',
@@ -85,6 +111,7 @@ export async function uploadFromUrl(imageUrl, subdir = 'pages', userId = 'anon')
  * @returns {Promise<string>} 公开访问的 OSS URL
  */
 export async function uploadBuffer(buffer, subdir = 'audio', ext = 'mp3', userId = 'anon', ossKeyOverride = null) {
+  if (process.env.LOCAL_UPLOAD_DIR) return saveLocalAsset(buffer, ext);
   const { randomUUID } = await import('crypto');
   const ossKey = ossKeyOverride
     ? `${FOLDER}/${ossKeyOverride}`
@@ -93,7 +120,7 @@ export async function uploadBuffer(buffer, subdir = 'audio', ext = 'mp3', userId
   const mimeMap  = { mp3: 'audio/mpeg', mp4: 'audio/mp4', ogg: 'audio/ogg', wav: 'audio/wav' };
   const mimeType = mimeMap[ext] || 'application/octet-stream';
 
-  await client.put(ossKey, buffer, {
+  await getClient().put(ossKey, buffer, {
     timeout: 120000,
     headers: {
       'Content-Type':      mimeType,

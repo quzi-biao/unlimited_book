@@ -3,6 +3,9 @@ import { get, post, patch, del } from './client.js';
 /** GET /api/books */
 export const getBooks = () => get('/api/books');
 
+/** GET /api/books/topic：只查询本书架的已有话题，不生成或扣点。 */
+export const findTopicBook = (query) => get('/api/books/topic', { query });
+
 /** POST /api/books */
 export const createBook = (data) => post('/api/books', data);
 

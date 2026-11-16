@@ -1,7 +1,11 @@
 package com.flipbook.ai.flipbook.migrated
 
-import android.content.Context
-import android.net.ConnectivityManager
+import androidx.activity.compose.BackHandler
+import com.flipbook.ai.BuildConfig
+import com.flipbook.ai.flipbook.migrated.components.common.LocalCompactLayout
+import com.flipbook.ai.flipbook.migrated.components.common.LocalReaderImageLayout
+import com.flipbook.ai.flipbook.migrated.components.common.rememberReaderImageLayout
+import com.flipbook.ai.flipbook.migrated.utils.openPhoneNetworkSettings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,8 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -18,15 +20,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.flipbook.ai.flipbook.migrated.hooks.recordReadingViewport
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.flipbook.ai.flipbook.migrated.api.deviceApi
-import com.flipbook.ai.flipbook.migrated.api.walletApi
 import com.flipbook.ai.flipbook.migrated.components.explanationpanel.ExplanationPanel
-import com.flipbook.ai.flipbook.migrated.components.explorequeue.ExploreQueueBtn
 import com.flipbook.ai.flipbook.migrated.components.explorequeue.ExploreQueueDoneCards
 import com.flipbook.ai.flipbook.migrated.components.explorequeue.ExploreQueuePanel
 import com.flipbook.ai.flipbook.migrated.components.otaupdate.OtaBadge
@@ -38,14 +38,12 @@ import com.flipbook.ai.flipbook.migrated.components.shelfpanel.BookGraphSelectio
 import com.flipbook.ai.flipbook.migrated.components.shelfpanel.ShelfPanel
 import com.flipbook.ai.flipbook.migrated.components.shoppage.ShopPage
 import com.flipbook.ai.flipbook.migrated.components.toolbar.ToolBar
+import com.flipbook.ai.flipbook.migrated.components.toolbar.PhoneReaderActions
 import com.flipbook.ai.flipbook.migrated.components.ttsplayer.TtsPlayer
 import com.flipbook.ai.flipbook.migrated.components.viewport.Viewport
 import com.flipbook.ai.flipbook.migrated.components.common.GuideOverlay
-import com.flipbook.ai.flipbook.migrated.components.common.GuideStepDef
 import com.flipbook.ai.flipbook.migrated.components.common.LocalGuideController
 import com.flipbook.ai.flipbook.migrated.components.common.NoNetworkDialog
-import com.flipbook.ai.flipbook.migrated.components.common.isNetworkConnected
-import com.flipbook.ai.flipbook.migrated.components.common.TooltipAnchor
 import com.flipbook.ai.flipbook.migrated.components.common.rememberGuideController
 import com.flipbook.ai.flipbook.migrated.hooks.ExploreTask
 import com.flipbook.ai.flipbook.migrated.hooks.FlipbookOpenPage
@@ -53,14 +51,11 @@ import com.flipbook.ai.flipbook.migrated.hooks.rememberFlipbookState
 import com.flipbook.ai.flipbook.migrated.hooks.rememberOtaUpdateState
 import com.flipbook.ai.flipbook.migrated.hooks.rememberTtsPlaybackState
 import com.flipbook.ai.flipbook.migrated.hooks.rememberUseBooksState
-import com.flipbook.ai.flipbook.migrated.utils.getDeviceToken
-import com.flipbook.ai.flipbook.migrated.utils.initDevice
-import androidx.compose.runtime.CompositionLocalProvider
-import kotlinx.coroutines.delay
 
 /** 对应 WebView: legacy-webview-src/App.jsx */
 @Composable
 fun AppScreen() {
+    val compact = LocalCompactLayout.current
     val flipbook = rememberFlipbookState()
     val tts = rememberTtsPlaybackState()
     val ota = rememberOtaUpdateState()
@@ -78,6 +73,7 @@ fun AppScreen() {
     var isSelecting by remember { mutableStateOf(false) }
     var calloutOpen by remember { mutableStateOf(false) }
     var toolbarUserHidden by remember { mutableStateOf(false) }
+    var topicInputFocused by remember { mutableStateOf(false) }
     var settingsOpen by remember { mutableStateOf(false) }
     var settingsInitialTab by remember { mutableStateOf("voice") }
     var shopOpen by remember { mutableStateOf(false) }
@@ -85,177 +81,23 @@ fun AppScreen() {
     var networkPanelOpen by remember { mutableStateOf(false) }
     var studyPoints by remember { mutableStateOf(0) }
 
-    // 全局网络连通状态由 NoNetworkDialog 管理，外层通过 noNetworkDialogVisible 推断
-
     // 全局网络无连接弹窗状态
     var noNetworkDialogVisible by remember { mutableStateOf(false) }
 
     val activePageId = flipbook.currentPageId
 
-    LaunchedEffect(appContext) {
-        runCatching { initDevice(appContext) }
-        ota.check()
-        // 启动时立刻拉取一次学习点数余额
-        runCatching { walletApi.info(appContext) }
-            .onSuccess { json ->
-                val pts = json.get("balance")?.asInt
-                if (pts != null) studyPoints = pts
-            }
-        var heartbeatCount = 0
-        var lastInitRetryAt = 0L
-        suspend fun retryInitIfNeeded() {
-            val now = System.currentTimeMillis()
-            if (now - lastInitRetryAt < 30_000L) return
-            lastInitRetryAt = now
-            runCatching { initDevice(appContext) }
-        }
-        while (true) {
-            if (getDeviceToken(appContext).isNullOrBlank()) {
-                retryInitIfNeeded()
-            }
-            val heartbeatOk = runCatching { deviceApi.heartbeat(appContext) }.isSuccess
-            if (!heartbeatOk) {
-                retryInitIfNeeded()
-            }
-            // 每 6 次心跳（约 1 分钟）同步更新点数余额
-            if (heartbeatCount % 6 == 0) {
-                runCatching { walletApi.info(appContext) }
-                    .onSuccess { json ->
-                        val pts = json.get("balance")?.asInt
-                        if (pts != null) studyPoints = pts
-                    }
-            }
-            heartbeatCount += 1
-            if (heartbeatCount % 6 == 0) {
-                ota.check()
-            }
-            delay(10_000)
-        }
-    }
+    AppDeviceSync(ota) { studyPoints = it }
 
     LaunchedEffect(activePageId) {
         explanationOpen = false
     }
 
-    // 初始化引导步骤列表（共 10 步）
+    // 初始化引导步骤，定义独立存放以保持主界面文件简洁。
     LaunchedEffect(Unit) {
-        guideController.setSteps(
-            listOf(
-                GuideStepDef(
-                    id = "wallet",
-                    targetKey = "wallet_btn",
-                    message = "系统需要消耗 AI 算力\n通过「学习点数」支付\n点数用尽后可在此充值",
-                    anchor = TooltipAnchor.Below,
-                    showPrev = false,
-                    nextLabel = "下一步",
-                ),
-                GuideStepDef(
-                    id = "settings",
-                    targetKey = "settings_btn",
-                    message = "在设置中可配置\n语音角色、WiFi 联网\n及屏幕亮度",
-                    anchor = TooltipAnchor.Below,
-                    nextLabel = "下一步",
-                ),
-                GuideStepDef(
-                    id = "first_topic",
-                    targetKey = "first_topic",
-                    message = "点击感兴趣的话题\n即可创建 AI 探索任务",
-                    anchor = TooltipAnchor.Left,
-                    showNext = false,  // 必须点击话题才能推进
-                    nextLabel = "我知道了",
-                ),
-                GuideStepDef(
-                    id = "explore_btn",
-                    targetKey = "explore_btn",
-                    message = "AI 正在深度思考中…\n根据内容复杂度\n约60～300 秒请耐心等待\n点击此处可查看进度",
-                    anchor = TooltipAnchor.Below,
-                    showPrev = false,  // 任务已提交，不应后退
-                    showNext = false,  // 必须等任务完成才能推进
-                    showDismiss = true, // 可关闭浮层临时隐藏，探索完成后自动推进
-                    wideTooltip = true, // 内容较多，使用展宽气泡
-                    nextLabel = "好的",
-                ),
-                GuideStepDef(
-                    id = "done_cards",
-                    targetKey = "done_cards",
-                    message = "✅ 探索完成！\n点击提示卡片\n即可跳转查看 AI 生成的页面",
-                    anchor = TooltipAnchor.Left,
-                    showNext = false,  // 必须点击卡片导航到页面才能推进
-                    nextLabel = "好的",
-                ),
-                // ── 页面 Toolbar 引导 ──────────────────────────────
-                GuideStepDef(
-                    id = "toolbar_shelf",
-                    targetKey = "toolbar_shelf_btn",
-                    message = "📚 这是书本列表按键\n点击可随时查看\n已探索的所有话题与书页",
-                    anchor = TooltipAnchor.Above,
-                    showPrev = false,  // 已完成导航，不回退
-                    highlightCornerRadius = 22.dp, // CircleButton: 44dp 圆形按鈕
-                    nextLabel = "下一步",
-                ),
-                GuideStepDef(
-                    id = "toolbar_book",
-                    targetKey = "toolbar_book_name",
-                    message = "显示当前书本名称\n点击可查看\n该书所有页面列表",
-                    anchor = TooltipAnchor.Above,
-                    highlightCornerRadius = 22.dp, // PillButton: RoundedCornerShape(22.dp)
-                    nextLabel = "下一步",
-                ),
-                GuideStepDef(
-                    id = "toolbar_page",
-                    targetKey = "toolbar_page_name",
-                    message = "显示当前书页名称\n点击可查看\nAI 生成的页面详细解析",
-                    anchor = TooltipAnchor.Above,
-                    highlightCornerRadius = 22.dp, // PillButton: RoundedCornerShape(22.dp)
-                    nextLabel = "下一步",
-                ),
-                GuideStepDef(
-                    id = "toolbar_play",
-                    targetKey = "toolbar_play_btn",
-                    message = "🎵 点击播放\nAI 将朗读当前页面内容\n支持变速与跳转",
-                    anchor = TooltipAnchor.Above,
-                    highlightCornerRadius = 26.dp, // IdleRoundButton: CircleShape 52dp 圆 → 半径 26dp
-                    nextLabel = "下一步",
-                ),
-                GuideStepDef(
-                    id = "page_find_area",
-                    targetKey = "page_find_area_tip",  // 无目标元素，tooltip 在动画下方
-                    message = "找到自己感兴趣的区域",
-                    anchor = TooltipAnchor.Above,
-                    showTargetAnimation = true,  // 圆形准星放大缩小动画
-                    nextLabel = "下一步",
-                ),
-                GuideStepDef(
-                    id = "page_draw_circle",
-                    targetKey = "page_draw_circle_tip",  // 无目标元素，tooltip 在动画下方
-                    message = "在感兴趣的区域周围画个圈\n可以进行深入的探索",
-                    anchor = TooltipAnchor.Above,
-                    showGestureAnimation = true,  // 手指画圈动画
-                    nextLabel = "完成引导",
-                ),
-            )
-        )
+        guideController.setSteps(appGuideSteps())
     }
 
-    // 网络状态监听（解决网络恢复后引导不弹出的问题）
-    val context = LocalContext.current.applicationContext
-    var isConnected by remember { mutableStateOf(isNetworkConnected(context)) }
-    DisposableEffect(context) {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val request = android.net.NetworkRequest.Builder()
-            .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-            .build()
-        val callback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: android.net.Network) { isConnected = true }
-            override fun onLost(network: android.net.Network) { isConnected = isNetworkConnected(context) }
-            override fun onCapabilitiesChanged(network: android.net.Network, networkCapabilities: android.net.NetworkCapabilities) {
-                isConnected = networkCapabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-            }
-        }
-        connectivityManager.registerNetworkCallback(request, callback)
-        onDispose { connectivityManager.unregisterNetworkCallback(callback) }
-    }
+    val isConnected = rememberAppNetworkConnected()
 
     // 核心判定：是否在“viewport页面”（未被设置/充值面板遮挡）且已联网
     val isOnViewport = !settingsOpen && !shopOpen
@@ -305,8 +147,6 @@ fun AppScreen() {
         }
     }
 
-    // 注：旧的 books.size 自动推进已移除——done_cards 需用户点击卡片推进（handleViewExploreTask 内处理）
-
     // 书单加载完且为空：自动打开 ShelfPanel
     LaunchedEffect(booksState.loading, booksState.books.size) {
         if (!booksState.loading && booksState.books.isEmpty() && !hasAutoOpenedShelf) {
@@ -316,6 +156,7 @@ fun AppScreen() {
     }
 
     fun openPageTree(bookId: String?, bookTitle: String?) {
+        if (compact && bookId != null) flipbook.updateShelfOpen(false)
         pageTreeBookId = bookId
         pageTreeBookTitle = bookTitle.orEmpty()
     }
@@ -374,8 +215,28 @@ fun handleSelectShelfPage(page: BookGraphSelection) {
         }
     }
 
+    // 手机上优先关闭最上层面板，阅读主界面保留系统默认返回行为。
+    BackHandler(BuildConfig.PHONE_UI && (guideController.isVisible || settingsOpen || shopOpen || explorePanelOpen ||
+        explanationOpen || pageTreeBookId != null || flipbook.shelfOpen)) {
+        when {
+            guideController.isVisible -> guideController.dismiss()
+            settingsOpen -> settingsOpen = false
+            shopOpen -> shopOpen = false
+            explorePanelOpen -> explorePanelOpen = false
+            explanationOpen -> explanationOpen = false
+            pageTreeBookId != null -> closePageTree()
+            else -> flipbook.updateShelfOpen(false)
+        }
+    }
+
     val toolBarHidden =
         calloutOpen || isSelecting || explanationOpen || toolbarUserHidden
+    val queueControlsVisible = !BuildConfig.PHONE_UI || (!toolBarHidden && !topicInputFocused &&
+        !settingsOpen && !shopOpen && !flipbook.shelfOpen && pageTreeBookId == null)
+    // 手机探索入口和结果卡片跟随阅读控件显隐，恢复时不自动展开面板。
+    LaunchedEffect(queueControlsVisible, explorePanelOpen) {
+        if (!queueControlsVisible && explorePanelOpen) explorePanelOpen = false
+    }
 
     fun handlePageTap() {
         if (!calloutOpen && !isSelecting && !explanationOpen) {
@@ -383,7 +244,10 @@ fun handleSelectShelfPage(page: BookGraphSelection) {
         }
     }
 
-    CompositionLocalProvider(LocalGuideController provides guideController) {
+    CompositionLocalProvider(
+        LocalGuideController provides guideController,
+        LocalReaderImageLayout provides rememberReaderImageLayout(flipbook.imageUrl),
+    ) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -429,7 +293,10 @@ fun handleSelectShelfPage(page: BookGraphSelection) {
             },
             onSwipeNav = { delta -> flipbook.viewportNavGo(delta) },
             onPageTap = ::handlePageTap,
-            modifier = Modifier.fillMaxSize(),
+            // 阅读栏在画布上悬浮，显隐时不改变图片尺寸及热点坐标。
+            modifier = Modifier.fillMaxSize().recordReadingViewport(
+                topicInputFocused, flipbook::updateReadingViewport,
+            ),
         )
 
         PageTreePanel(
@@ -444,6 +311,7 @@ fun handleSelectShelfPage(page: BookGraphSelection) {
         ShelfPanel(
             open = flipbook.shelfOpen,
             onClose = { flipbook.updateShelfOpen(false) },
+            books = booksState,
             backdropClosable = pageTreeBookId == null,
             // 书单为空时传 true，论话题区自动展开并展示引导
             initialTopicsOpen = hasAutoOpenedShelf && booksState.books.isEmpty(),
@@ -459,7 +327,7 @@ fun handleSelectShelfPage(page: BookGraphSelection) {
             },
             onSelectPage = ::handleSelectShelfPage,
             onSelectTopic = { topic ->
-                flipbook.browse(topic.name)
+                flipbook.browsePreparedTopic(topic.name)
                 flipbook.updateShelfOpen(false)
             },
             onOpenSettings = { settingsOpen = true },
@@ -483,11 +351,29 @@ fun handleSelectShelfPage(page: BookGraphSelection) {
             onPageNameClick = {
                 if (activePageId != null) explanationOpen = true
             },
+            inputActive = !flipbook.shelfOpen && pageTreeBookId == null &&
+                !settingsOpen && !shopOpen && !explorePanelOpen,
+            onInputFocusChanged = { topicInputFocused = it },
+            onExploreTopic = { topic ->
+                val accepted = flipbook.browse(topic)
+                if (accepted) {
+                    flipbook.updateShelfOpen(false)
+                    explorePanelOpen = true
+                }
+                accepted
+            },
             modifier = Modifier.align(Alignment.BottomCenter),
+            phoneActions = {
+                PhoneReaderActions(
+                    state = tts.uiState, enabled = activePageId != null,
+                    onPlayback = { tts.togglePlayPause(activePageId, flipbook.currentBookTitle, flipbook.currentPageTitle) },
+                )
+            },
         )
 
         TtsPlayer(
-            pageVisible = activePageId != null && !toolBarHidden,
+            showRoundButton = !BuildConfig.PHONE_UI,
+            pageVisible = activePageId != null && !toolBarHidden && !topicInputFocused,
             state = tts.uiState,
             onRoundClick = {
                 tts.toggleRound(
@@ -532,30 +418,27 @@ fun handleSelectShelfPage(page: BookGraphSelection) {
             onRestart = { ota.restartInstaller() },
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(top = 14.dp, start = 14.dp),
+                .padding(top = if (BuildConfig.PHONE_UI) 80.dp else 14.dp, start = 14.dp),
         )
 
-        ExploreQueueBtn(
-            queue = flipbook.exploreQueue,
-            isProcessing = flipbook.exploreProcessing,
-            panelOpen = explorePanelOpen,
-            onToggle = { explorePanelOpen = !explorePanelOpen },
-            errorTip = flipbook.queueError,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 14.dp, end = 14.dp)
-                .onGloballyPositioned { coords ->
-                    guideController.registerTarget("explore_btn", coords.boundsInRoot())
-                },
+        AppReaderHeader(
+            flipbook = flipbook, controlsVisible = !toolBarHidden && !topicInputFocused,
+            panelOpen = settingsOpen || shopOpen || flipbook.shelfOpen || pageTreeBookId != null, balance = studyPoints,
+            queueOpen = explorePanelOpen, onQueueToggle = { explorePanelOpen = !explorePanelOpen },
+            onCloseQueue = { explorePanelOpen = false },
+            onBook = { openPageTree(flipbook.currentBookId, flipbook.currentBookTitle) },
+            onPage = { if (activePageId != null) explanationOpen = true },
+            onRecharge = { flipbook.updateShelfOpen(false); pageTreeBookId = null; explorePanelOpen = false; shopOpen = true },
+            onSettings = { flipbook.updateShelfOpen(false); pageTreeBookId = null; explorePanelOpen = false; settingsOpen = true },
         )
 
-        if (!explorePanelOpen) {
+        if (!explorePanelOpen && queueControlsVisible) {
             ExploreQueueDoneCards(
                 tasks = flipbook.exploreQueue.filter { it.status == "done" },
                 onView = ::handleViewExploreTask,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 58.dp, end = 14.dp)
+                    .padding(top = if (BuildConfig.PHONE_UI && !toolBarHidden && !topicInputFocused) 124.dp else 58.dp, end = 14.dp)
                     .onGloballyPositioned { coords ->
                         guideController.registerTarget("done_cards", coords.boundsInRoot())
                     },
@@ -563,7 +446,7 @@ fun handleSelectShelfPage(page: BookGraphSelection) {
         }
 
         ExploreQueuePanel(
-            open = explorePanelOpen,
+            open = explorePanelOpen && queueControlsVisible,
             queue = flipbook.exploreQueue,
             onClose = { explorePanelOpen = false },
             onView = ::handleViewExploreTask,
@@ -571,8 +454,8 @@ fun handleSelectShelfPage(page: BookGraphSelection) {
             onRetry = { id -> flipbook.retryExploreTask(id) },
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .fillMaxWidth(0.42f)
-                .padding(top = 54.dp, end = 14.dp),
+                .fillMaxWidth(if (compact) 1f else 0.42f)
+                .padding(top = if (BuildConfig.PHONE_UI && !toolBarHidden && !topicInputFocused) 120.dp else 54.dp, end = 14.dp),
         )
         // 全局引导浮层（最顶层，视觉上覆盖所有内容）
         if (canShowGuide) {
@@ -580,7 +463,7 @@ fun handleSelectShelfPage(page: BookGraphSelection) {
         }
 
         // 右上角快捷控制抽屉（手指从右上角边缘下划呼出）
-        QuickDrawer(
+        if (!BuildConfig.PHONE_UI) QuickDrawer(
             studyPoints    = studyPoints,
             onOpenSettings = { settingsOpen = true },
             onOpenRecharge = { shopOpen = true },
@@ -595,8 +478,10 @@ fun handleSelectShelfPage(page: BookGraphSelection) {
     NoNetworkDialog(
         onVisibleChange = { noNetworkDialogVisible = it },
         onGoToWifi = {
-            settingsInitialTab = "wifi"
-            settingsOpen = true
+            if (BuildConfig.PHONE_UI) openPhoneNetworkSettings(appContext) else {
+                settingsInitialTab = "wifi"
+                settingsOpen = true
+            }
         },
     )
 }

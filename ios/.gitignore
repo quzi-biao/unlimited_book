@@ -1,0 +1,16 @@
+# Xcode 本机状态与构建产物
+build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xcarchive
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# 签名私钥与本机描述文件
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.provisionprofile

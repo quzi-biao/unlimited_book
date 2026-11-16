@@ -2,6 +2,16 @@ apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 
+// 手机正式签名只从本机配置读取，密钥不进入源码仓库。
+def phoneSigningFile = rootProject.file(project.findProperty('PHONE_SIGNING_PROPERTIES') ?: 'phone-signing.properties')
+def phoneSigning = new Properties()
+if (phoneSigningFile.exists()) {
+    phoneSigningFile.withInputStream { phoneSigning.load(it) }
+    ['storeFile', 'storePassword', 'keyAlias', 'keyPassword'].each { key ->
+        if (!phoneSigning.getProperty(key)) throw new GradleException("手机签名配置缺少 ${key}")
+    }
+}
+
 android {
     namespace = "com.flipbook.ai"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -12,10 +22,38 @@ android {
         applicationId "com.flipbook.ai"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 133
-        versionName "1.0.133"
+        versionCode 140
+        versionName "1.0.140"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField "String", "API_BASE_URL", "\"${apiBaseUrlProp}\""
+    }
+
+    signingConfigs {
+        phoneRelease {
+            if (phoneSigningFile.exists()) {
+                storeFile rootProject.file(phoneSigning.getProperty('storeFile'))
+                storePassword phoneSigning.getProperty('storePassword')
+                keyAlias phoneSigning.getProperty('keyAlias')
+                keyPassword phoneSigning.getProperty('keyPassword')
+            }
+        }
+    }
+
+    flavorDimensions "device"
+    productFlavors {
+        tablet {
+            dimension "device"
+            buildConfigField "boolean", "PHONE_UI", "false"
+        }
+        phone {
+            dimension "device"
+            applicationIdSuffix ".phone"
+            versionCode 147
+            versionName "1.0.147"
+            versionNameSuffix "-phone"
+            if (phoneSigningFile.exists()) signingConfig signingConfigs.phoneRelease
+            buildConfigField "boolean", "PHONE_UI", "true"
+        }
     }
 
     buildTypes {
@@ -47,6 +85,7 @@ android {
 }
 
 dependencies {
+    implementation project(':shared')
     implementation "androidx.core:core-ktx:$androidxCoreVersion"
     implementation "androidx.activity:activity-compose:$androidxActivityVersion"
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$androidxLifecycleVersion"
@@ -57,7 +96,7 @@ dependencies {
     implementation "androidx.compose.ui:ui:$composeUiVersion"
     implementation "androidx.compose.ui:ui-tooling-preview:$composeUiVersion"
     implementation "androidx.compose.material3:material3:$composeMaterial3Version"
-    implementation "androidx.compose.material:material-icons-extended:$composeUiVersion"
+    // 图标由 shared 的 CMP 依赖导出，版本独立于 Compose UI。
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation "com.google.android.material:material:$materialVersion"
     debugImplementation "androidx.compose.ui:ui-tooling:$composeUiVersion"

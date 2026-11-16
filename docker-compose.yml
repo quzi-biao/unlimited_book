@@ -33,12 +33,17 @@ services:
       MINIMAX_GROUP_ID: ${MINIMAX_GROUP_ID:-}
       # 图像生成 Provider（gptimage / gemini）
       IMAGE_PROVIDER: ${IMAGE_PROVIDER:-gptimage}
-      # GPT-Image-2 (yunwu.ai)
-      GPTIMAGE_BASE_URL: ${GPTIMAGE_BASE_URL:-https://yunwu.ai}
+      # GPT-Image-2 (OpenLux)
+      GPTIMAGE_BASE_URL: ${GPTIMAGE_BASE_URL:-https://api.openlux.ai}
       GPTIMAGE_API_KEY: ${GPTIMAGE_API_KEY}
+      GPTIMAGE_TEXT_MODEL: ${GPTIMAGE_TEXT_MODEL:-gpt-4.1-mini}
+      # 微信小程序内容安全检测
+      WX_MINI_APPID: ${WX_MINI_APPID:-}
+      WX_MINI_SECRET: ${WX_MINI_SECRET:-}
       # 微信支付 APIv3（商户API公钥模式）
       WX_APPID: ${WX_APPID}
       WX_MCHID: ${WX_MCHID}
+      WX_API_V3_KEY: ${WX_API_V3_KEY:-}
       WX_PUBLIC_KEY_ID: ${WX_PUBLIC_KEY_ID}
       WX_SERIAL_NO: ${WX_SERIAL_NO}
       WX_PRIVATE_KEY_PATH: ${WX_PRIVATE_KEY_PATH:-/app/certs/apiclient_key.pem}

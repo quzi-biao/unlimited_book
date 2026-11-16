@@ -1,27 +1,30 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAppState } from './contexts/AppStateContext.jsx';
 import { useAuth } from './contexts/AuthContext.jsx';
-import { ToolBar } from './components/ToolBar/ToolBar.jsx';
+import { ReaderToolBar } from './components/ToolBar/ReaderToolBar.jsx';
 import { Viewport } from './components/Viewport/Viewport.jsx';
 import { ShelfPanel } from './components/ShelfPanel/ShelfPanel.jsx';
 import { PageTreePanel } from './components/PageTreePanel/PageTreePanel.jsx';
 import { ExplanationPanel } from './components/ExplanationPanel/ExplanationPanel.jsx';
-import { TtsPlayer } from './components/TtsPlayer/TtsPlayer.jsx';
 import { SettingsPage } from './components/SettingsPage/SettingsPage.jsx';
 import { ShopPage } from './components/ShopPage/ShopPage.jsx';
 import { ToastContainer } from './components/common/Toast.jsx';
-import { ExploreQueueBtn, ExploreQueuePanel } from './components/ExploreQueue/ExploreQueue.jsx';
+import { ExploreQueuePanel } from './components/ExploreQueue/ExploreQueue.jsx';
+import { ReaderHeader } from './components/ReaderHeader/ReaderHeader.jsx';
 import { expandRegion, cropRegion } from './api/ai.js';
-import { getPages, getPage, getBook } from './api/books.js';
+import { getBooks, getPages, getPage, getBook } from './api/books.js';
 import { updateAnnotation, getAnnotations } from './api/annotations.js';
 import { AppLogo } from './components/common/Icons.jsx';
 import { LoadingSpinner } from './components/common/LoadingSpinner.jsx';
 import { useTtsPlayback } from './hooks/useTtsPlayback.js';
+import { useReadingViewport } from './hooks/useReadingViewport.js';
+import { useBrowseTopic } from './hooks/useBrowseTopic.js';
 import styles from './App.module.css';
 
 let toastIdSeq = 0;
 
 export default function App() {
+  const readingViewportRef = useReadingViewport();
   const { state, dispatch, setCurrentPage } = useAppState();
   const { loading: authLoading, error: authError, initAuth } = useAuth();
 
@@ -37,6 +40,12 @@ export default function App() {
 
   // Toolbar 隐藏状态（单击页面时切换）
   const [toolbarHidden, setToolbarHidden] = useState(false);
+  const [readerImageWidth, setReaderImageWidth] = useState();
+
+  // 阅读控件收起时一并关闭探索面板，再次点屏幕只恢复入口。
+  useEffect(() => {
+    if (toolbarHidden && queueOpen) setQueueOpen(false);
+  }, [toolbarHidden, queueOpen]);
 
   // 用 useCallback 稳定引用：TTS ticker 每 200ms 触发重渲染，
   // 若使用内联函数会导致 Viewport useEffect 每次都重新执行，
@@ -81,13 +90,16 @@ export default function App() {
       .then(({ pages }) => {
         dispatch({ type: 'SET_BOOK_FLAT', flat: Array.isArray(pages) ? pages : [] });
       })
-      .catch(() => {});
+      .catch(error => {
+        if (error.status === 404) dispatch({ type: 'CLEAR_MISSING_BOOK', bookId });
+      });
   }, [state.currentBookId, state.currentBookTitle, state.currentPageId, state.currentImageUrl, dispatch, setCurrentPage]);
 
   /** 文生图完成后的回调 */
   const handleGenerate = useCallback((result, query) => {
-    setCurrentPage(result.bookId, query, result.pageId, result.imageUrl);
-    addToast({ type: 'success', message: `"${result.pageTitle}" 生成成功` });
+    setCurrentPage(result.bookId, result.bookTitle || query, result.pageId, result.imageUrl);
+    addToast({ type: result.reusedBook ? 'info' : 'success', message: result.reusedBook
+      ? `已打开书架中的「${result.bookTitle || query}」，未重复生成` : `"${result.pageTitle}" 生成成功` });
 
     // 更新书内平铺列表中新增的页面（如果是新书则重新加载）
     if (result.bookId) {
@@ -257,67 +269,7 @@ export default function App() {
     handleExpandRegion({ ...task.payload, _isRetry: taskId });
   }, [state.exploreQueue, handleExpandRegion, dispatch]);
 
-  /**
-   * 话题探索（对应 Android flipbook.browse）
-   * 点击 ShelfPanel 话题 → 加入探索队列（type: 'topic'），
-   * 后台调用 generateImage，完成后在 ExploreQueueBtn/Panel 中查看结果
-   */
-  const handleBrowseTopic = useCallback(async (topicName) => {
-    const query = topicName.trim();
-    if (!query) return;
-
-    const dedupeKey = `topic-${query}-${state.currentBookId ?? 'new'}-root`;
-    if (state.exploreQueue.some((t) => t.dedupeKey === dedupeKey)) {
-      addToast({ type: 'warning', message: '该话题已在探索队列中' });
-      return;
-    }
-    if (state.exploreQueue.length >= 5) {
-      addToast({ type: 'warning', message: '队列已满（最多5个），请等待完成后再探索' });
-      return;
-    }
-
-    const taskId = `ex-${Date.now()}`;
-    dispatch({
-      type: 'ADD_EXPLORE_TASK',
-      task: {
-        id: taskId,
-        type: 'topic',
-        status: 'loading',
-        label: query,
-        bookTitle: query,
-        sourcePageTitle: query,
-        dedupeKey,
-        payload: { query },
-        startedAt: Date.now(),
-      },
-    });
-    setQueueOpen(true);
-    dispatch({ type: 'SET_SHELF', open: false });
-
-    try {
-      const { generateImage } = await import('./api/ai.js');
-      const result = await generateImage(query);
-      dispatch({
-        type: 'UPDATE_EXPLORE_TASK',
-        id: taskId,
-        updates: {
-          status: 'done',
-          pageId: result.pageId,
-          imageUrl: result.imageUrl,
-          bookId: result.bookId,
-          label: result.pageTitle || query,
-        },
-      });
-      addToast({ type: 'success', message: `「${result.pageTitle || query}」 已生成，可在队列中查看` });
-    } catch (err) {
-      dispatch({
-        type: 'UPDATE_EXPLORE_TASK',
-        id: taskId,
-        updates: { status: 'failed', error: err.message || '生成失败' },
-      });
-      addToast({ type: 'error', message: err.message || '话题探索失败' });
-    }
-  }, [dispatch, addToast, state.currentBookId, state.exploreQueue]);
+  const handleBrowseTopic = useBrowseTopic({ state, dispatch, setCurrentPage, setQueueOpen, addToast });
 
   /**
    * 页面刷新后恢复执行 loading 状态的任务
@@ -400,15 +352,6 @@ export default function App() {
     }
   }, [setCurrentPage, state.currentBookId, dispatch]);
 
-  /** TTS 切换（对应 Android toggleRound 圆形按键） */
-  const handleToggleTts = useCallback(() => {
-    if (!state.currentPageId) return;
-    tts.toggleRound(
-      state.currentPageId,
-      state.currentBookTitle || '',
-      state.bookFlat.find((p) => p.id === state.currentPageId)?.title || '',
-    );
-  }, [state.currentPageId, state.currentBookTitle, state.bookFlat, tts.toggleRound]);
 
   /* ── 认证加载中 ─────────────────────────────────────────── */
   if (authLoading) {
@@ -442,12 +385,11 @@ export default function App() {
 
   return (
     <div className={styles.app}>
-      {/* 星空背景 */}
       <div className="starfield" />
 
 
       {/* 主内容区 */}
-      <main
+      <main ref={readingViewportRef}
         className={styles.main}
         style={{
           paddingBottom: hasExplanation
@@ -457,6 +399,7 @@ export default function App() {
         onClick={undefined}
       >
         <Viewport
+          onImageFrameChange={setReaderImageWidth}
           onToast={addToast}
           onExpandRegion={handleExpandRegion}
           onToggleToolbar={handleToggleToolbar}
@@ -483,30 +426,11 @@ export default function App() {
       <SettingsPage onToast={addToast} />
       <ShopPage onToast={addToast} />
 
-      {/* TTS 播放器（对应 Android TtsPlayer） */}
-      <TtsPlayer
-        pageVisible={!!state.currentPageId && !toolbarHidden}
-        uiState={tts.uiState}
-        onRoundClick={handleToggleTts}
-        onPlayPause={() => tts.togglePlayPause(
-          state.currentPageId,
-          state.currentBookTitle || '',
-          state.bookFlat.find((p) => p.id === state.currentPageId)?.title || '',
-        )}
-        onSeek={(sec) => tts.seekTo(sec)}
-        onRateToggle={() => tts.toggleRate()}
-        onGoToPage={(pageId) => {
-          const p = state.bookFlat.find((pg) => pg.id === pageId);
-          if (p) setCurrentPage(state.currentBookId, state.currentBookTitle, p.id, p.imageUrl);
-        }}
-      />
-
-      {/* 探索队列按钮（右上角，对应 Android TopEnd）*/}
-      <div style={{ position: 'fixed', top: 20, right: 24, zIndex: 310 }}>
-        <ExploreQueueBtn open={queueOpen} onToggle={() => setQueueOpen((v) => !v)} />
-      </div>
+      {/* 导航位于左上角，账户位于右上角，探索任务另起一行。 */}
+      <ReaderHeader hidden={toolbarHidden} queueOpen={queueOpen}
+        onQueueToggle={() => setQueueOpen((v) => !v)} onCloseQueue={() => setQueueOpen(false)} />
       <ExploreQueuePanel
-        open={queueOpen}
+        open={queueOpen && !toolbarHidden && !state.settingsOpen && !state.shopOpen}
         onClose={() => setQueueOpen(false)}
         onNavigate={handleQueueNavigate}
         onRetry={handleRetryTask}
@@ -516,10 +440,10 @@ export default function App() {
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
       {/* 底部工具栏（最后渲染，确保在面板之上） */}
-      <ToolBar
+      <ReaderToolBar
+        imageWidth={readerImageWidth}
         onGenerate={handleGenerate}
-        onToggleTts={handleToggleTts}
-        ttsPlaying={tts.uiState.playbackState !== 'idle'}
+        tts={tts}
         onToast={addToast}
         hidden={toolbarHidden}
       />

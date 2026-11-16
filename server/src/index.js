@@ -7,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import prisma          from './config/db.js';
+import { getContentRevision } from './services/contentRevision.js';
 import booksRouter      from './routes/books.js';
 import pagesRouter      from './routes/pages.js';      // /:bookId/pages 路由
 import singlePageRouter from './routes/singlePage.js'; // /pages/:id 路由
@@ -43,6 +44,23 @@ app.set('trust proxy', true);
 app.use(morgan(':method :url :status :response-time ms - :res[content-length] - IP: :remote-addr'));
 app.use(express.json({ limit: '50mb' })); // base64 图片可能较大
 
+// 仅在本地 Compose 显式配置时，提供已复制的图片和语音文件。
+if (process.env.LOCAL_ASSET_DIR) {
+  app.use('/api/local-assets', express.static(path.resolve(process.env.LOCAL_ASSET_DIR), {
+    dotfiles: 'deny',
+    index: false,
+    maxAge: '1d',
+  }));
+}
+// 本地生成资源与只读导入内容分开保存，生产部署默认不启用。
+if (process.env.LOCAL_UPLOAD_DIR) {
+  app.use('/api/local-uploads', express.static(path.resolve(process.env.LOCAL_UPLOAD_DIR), {
+    dotfiles: 'deny',
+    index: false,
+    maxAge: '1d',
+  }));
+}
+
 // ── 路由挂载 ────────────────────────────────────────────
 app.use('/api/books',   booksRouter);
 app.use('/api/books',   pagesRouter);      // /api/books/:bookId/pages
@@ -61,8 +79,10 @@ app.use('/api/admin',   adminRouter);      // Admin 后台接口
 
 
 // ── 健康检查 ────────────────────────────────────────────
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', ts: new Date().toISOString() });
+app.get('/api/health', async (_req, res) => {
+  const contentRevision = await getContentRevision();
+  res.set('Cache-Control', 'no-store');
+  res.json({ status: 'ok', ts: new Date().toISOString(), ...(contentRevision ? { contentRevision } : {}) });
 });
 
 // ── 生产环境：静态伺服 Admin 后台构建产物 ─────────────────

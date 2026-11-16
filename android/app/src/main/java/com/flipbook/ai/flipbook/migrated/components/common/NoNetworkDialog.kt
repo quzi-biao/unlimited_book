@@ -1,6 +1,7 @@
 package com.flipbook.ai.flipbook.migrated.components.common
 
 import android.content.Context
+import com.flipbook.ai.BuildConfig
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -59,7 +60,7 @@ fun isNetworkConnected(context: Context): Boolean {
  */
 @Suppress("DEPRECATION")
 fun tryEnableWifi(context: Context) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) return // Android 10+ 无法直接开启
+    if (BuildConfig.PHONE_UI || Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) return // Android 10+ 无法直接开启
     val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager ?: return
     if (!wm.isWifiEnabled) {
         runCatching { wm.isWifiEnabled = true }
@@ -77,6 +78,7 @@ fun NoNetworkDialog(
     onVisibleChange: (Boolean) -> Unit = {},
     onGoToWifi: () -> Unit,
 ) {
+    val compact = LocalCompactLayout.current
     val context = LocalContext.current.applicationContext
     var visible by remember { mutableStateOf(false) }
 
@@ -137,7 +139,7 @@ fun NoNetworkDialog(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth(0.40f)
+                    .fillMaxWidth(if (compact) 0.9f else 0.40f)
                     .clip(RoundedCornerShape(24.dp))
                     .background(
                         Brush.linearGradient(
@@ -176,7 +178,7 @@ fun NoNetworkDialog(
                 Spacer(Modifier.height(10.dp))
 
                 Text(
-                    text = "请连接 WiFi 后继续使用\n检测到网络后将自动继续",
+                    text = if (BuildConfig.PHONE_UI) "请连接 WiFi 或移动网络\n检测到网络后将自动继续" else "请连接 WiFi 后继续使用\n检测到网络后将自动继续",
                     color = Color(0x99FFFFFF),
                     fontSize = 13.sp,
                     lineHeight = 20.sp,
@@ -203,7 +205,7 @@ fun NoNetworkDialog(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "前往 WiFi 设置",
+                        text = if (BuildConfig.PHONE_UI) "前往网络设置" else "前往 WiFi 设置",
                         color = Color.White,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,

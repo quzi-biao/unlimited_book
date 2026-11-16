@@ -44,7 +44,7 @@ async function main() {
         role: 'superadmin',
       },
     });
-    console.log(`✅ 管理员账号已创建：${adminUsername} / ${adminPassword}`);
+    console.log(`✅ 管理员账号已创建：${adminUsername}`);
   } else {
     // 确保 role 是 superadmin
     await prisma.user.update({

@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
@@ -74,7 +75,8 @@ private val ARROW_SIZE = 8.dp
 fun GuideOverlay(controller: GuideController) {
     val step = controller.activeStep ?: return
     val density = LocalDensity.current
-    val bounds = step.targetBounds
+    var overlayBounds by remember { mutableStateOf(Rect.Zero) }
+    val bounds = step.targetBounds?.translate(-overlayBounds.topLeft)
     // 追踪 tooltip 气泡的实际渲染区域，与 spotlight 区域一起设为触摸穿透
     var tooltipRect by remember { mutableStateOf<Rect?>(null) }
 
@@ -90,7 +92,7 @@ fun GuideOverlay(controller: GuideController) {
         label = "ripple",
     )
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().onGloballyPositioned { overlayBounds = it.boundsInRoot() }) {
         // ── 遮罩层 + 打孔 + 呼吸灯 ─────────────────────────────
         if (bounds != null) {
             Canvas(
@@ -152,6 +154,7 @@ fun GuideOverlay(controller: GuideController) {
                 step = step,
                 density = density,
                 bounds = bounds,
+                viewportSize = overlayBounds.size,
                 onPrev = { controller.prev() },
                 onNext = { controller.next() },
                 onDismiss = { controller.dismiss() },
@@ -166,10 +169,12 @@ private fun TooltipBubble(
     step: ActiveGuideStep,
     density: androidx.compose.ui.unit.Density,
     bounds: androidx.compose.ui.geometry.Rect?,
+    viewportSize: Size,
     onPrev: () -> Unit,
     onNext: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val compact = LocalCompactLayout.current
     val maxWidth = if (step.def.wideTooltip) TOOLTIP_WIDE_WIDTH else TOOLTIP_MAX_WIDTH
     val marginPx = with(density) { TOOLTIP_MARGIN.toPx() }
     val tooltipW = with(density) { maxWidth.toPx() }
@@ -178,8 +183,8 @@ private fun TooltipBubble(
     val arrowPx = with(density) { ARROW_SIZE.toPx() }
     val edgePad = with(density) { 8.dp.toPx() }
 
-    val screenHeightPx = with(density) { LocalConfiguration.current.screenHeightDp.dp.toPx() }
-    val screenWidthPx = with(density) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
+    val screenHeightPx = viewportSize.height.takeIf { it > 0 } ?: with(density) { LocalConfiguration.current.screenHeightDp.dp.toPx() }
+    val screenWidthPx = viewportSize.width.takeIf { it > 0 } ?: with(density) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
 
     /** 将 tooltip 居中对齐目标元素，并 clamp 到屏幕内 */
     fun centeredLeft(boundsRect: androidx.compose.ui.geometry.Rect): Float =
@@ -232,8 +237,8 @@ private fun TooltipBubble(
         )
     }
 
-    val topDp: Dp = with(density) { topPx.toDp() }.coerceAtLeast(4.dp)
-    val leftDp: Dp = with(density) { leftPx.toDp() }.coerceAtLeast(4.dp)
+    val topDp: Dp = with(density) { (if (compact) topPx.coerceAtMost((screenHeightPx - tooltipH - edgePad).coerceAtLeast(edgePad)) else topPx).toDp() }.coerceAtLeast(4.dp)
+    val leftDp: Dp = with(density) { (if (compact) leftPx.coerceAtMost((screenWidthPx - tooltipW - edgePad).coerceAtLeast(edgePad)) else leftPx).toDp() }.coerceAtLeast(4.dp)
 
     // 关闭按键倒计时：step 切换时重置为 10s，倒计时到 0 后出现关闭按键
     var dismissSecondsLeft by remember(step.def.id) {

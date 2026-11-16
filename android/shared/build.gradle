@@ -1,0 +1,48 @@
+apply plugin: 'org.jetbrains.kotlin.multiplatform'
+apply plugin: 'com.android.library'
+apply plugin: 'org.jetbrains.compose'
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
+
+kotlin {
+    androidTarget {
+        compilerOptions {
+            jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+        }
+    }
+
+    // Android 构建不需要 Xcode。iOS 接入时显式启用目标，共享代码不依赖安卓 API。
+    if (providers.gradleProperty('enableIos').orNull == 'true') {
+        iosArm64()
+        iosSimulatorArm64()
+        targets.withType(org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget).configureEach {
+            binaries.framework {
+                baseName = 'FlipbookShared'
+                isStatic = true
+            }
+        }
+    }
+
+    sourceSets {
+        commonMain.dependencies {
+            api compose.runtime
+            api compose.foundation
+            api compose.material3
+            api compose.materialIconsExtended
+            api compose.ui
+            implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2'
+        }
+        commonTest.dependencies {
+            implementation kotlin('test')
+        }
+    }
+}
+
+android {
+    namespace 'com.flipbook.shared'
+    compileSdk rootProject.ext.compileSdkVersion
+    defaultConfig { minSdk rootProject.ext.minSdkVersion }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

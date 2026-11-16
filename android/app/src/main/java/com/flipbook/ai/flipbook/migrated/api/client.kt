@@ -190,6 +190,10 @@ object otaApi {
 
 /** 对应 WebView: api/client.js */
 object booksApi {
+    /** 查询已有书和预生成首层状态，不触发模型调用。 */
+    suspend fun topic(context: Context, query: String): JsonObject =
+        request(context, "/books/topic?query=" + java.net.URLEncoder.encode(query, "UTF-8"))
+
     suspend fun list(context: Context): BooksListResponse =
         request(context, "/books")
 

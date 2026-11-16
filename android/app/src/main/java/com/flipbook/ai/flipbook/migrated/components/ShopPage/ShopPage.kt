@@ -1,5 +1,6 @@
 package com.flipbook.ai.flipbook.migrated.components.shoppage
 
+import com.flipbook.ai.flipbook.migrated.components.common.LocalCompactLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -180,7 +181,10 @@ fun ShopPage(
             .background(Brush.linearGradient(listOf(ShopPageStyle.BgStart, ShopPageStyle.BgMid, ShopPageStyle.BgEnd))),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            ShopNavTabs(
+            if (LocalCompactLayout.current) {
+                ShopTopBar(balance = wallet.balance, onBack = onBack)
+                ShopTabs(tab = tab, onTabChange = { tab = it })
+            } else ShopNavTabs(
                 tab = tab,
                 onTabChange = { tab = it },
                 balance = wallet.balance,

@@ -6,6 +6,7 @@
  * 大幅降低 AI API 请求 payload 大小，从 ~1.4MB 缩到 ~150KB（约 10x 加速）
  */
 import sharp from 'sharp';
+import { readImageBuffer } from '../imageSource.js';
 
 /** 压缩后最大宽度（px）；足够 AI 视觉理解，远小于原始大图 */
 const MAX_WIDTH  = 1024;
@@ -16,14 +17,11 @@ const JPEG_QUALITY = 80;
  * 下载图片并用 sharp 压缩后返回 base64 data URL
  * 若图片宽度 ≤ MAX_WIDTH 则不放大，只压缩质量。
  *
- * @param {string} imageUrl  公开可访问的图片 URL（OSS 等）
+ * @param {string} imageUrl  公开图片 URL 或本地资源相对路径
  * @returns {Promise<string>} data:image/jpeg;base64,{base64}
  */
 export async function fetchAndCompressImage(imageUrl) {
-  const res = await fetch(imageUrl);
-  if (!res.ok) throw new Error(`图片下载失败 (${res.status})`);
-
-  const rawBuffer = Buffer.from(await res.arrayBuffer());
+  const rawBuffer = await readImageBuffer(imageUrl);
 
   // sharp 压缩：等比缩放到 ≤ MAX_WIDTH，不放大小图，输出 JPEG
   const compressed = await sharp(rawBuffer)

@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import prisma from '../config/db.js';
 import { requireAuth } from '../middleware/auth.js';
+import { acquireTopicBookLock, findTopicBook, existingTopicResponse, withTopicBookTransaction } from '../services/topicBooks.js';
+import { sharedTopicImagesEnabled } from '../services/topicImagePolicy.js';
 
 const router = Router();
 
@@ -42,29 +44,43 @@ router.get('/', async (req, res, next) => {
 });
 
 // ── POST /api/books ────────────────────────────────────
+/** 查找本书架已有话题，仅返回已有页面，不触发生图或补标题。 */
+router.get('/topic', async (req, res, next) => {
+  try {
+    const query = typeof req.query.query === 'string' ? req.query.query.trim() : '';
+    if (!query) return res.status(400).json({ error: 'query 不能为空' });
+    const existing = await findTopicBook(prisma, getOwnerFilter(req), query);
+    const cached = existing?.page || !sharedTopicImagesEnabled() ? null : await prisma.topicCache.findUnique({
+      where: { topicName: query }, select: { id: true },
+    });
+    res.json({ existing: existing?.page ? existingTopicResponse(existing) : null, prepared: !!cached });
+  } catch (error) { next(error); }
+});
+
 // 创建新 book（生成第一张图时自动调用）
 router.post('/', async (req, res, next) => {
+  let releaseTopic;
   try {
-    const { title, mode = 'book', modelName, prompt, coverUrl } = req.body;
+    const { mode = 'book', modelName, prompt, coverUrl } = req.body;
+    const title = typeof req.body.title === 'string' ? req.body.title.trim() : '';
 
     if (!title) {
       return res.status(400).json({ error: 'title 不能为空' });
     }
 
-    const book = await prisma.book.create({
-      data: {
-        // 设备维度优先，兼容用户维度
-        ...(req.deviceId ? { deviceId: req.deviceId } : { userId: req.user.id }),
-        title,
-        mode,
-        modelName,
-        prompt,
-        coverUrl,
-      },
+    const owner = getOwnerFilter(req);
+    releaseTopic = await acquireTopicBookLock(owner, title, mode);
+    const result = await withTopicBookTransaction(prisma, owner, title, mode, async tx => {
+      const existing = await findTopicBook(tx, owner, title, mode);
+      if (existing) return { book: await tx.book.findUnique({ where: { id: existing.book.id } }), reusedBook: true };
+      const book = await tx.book.create({ data: { ...owner, title, mode, modelName, prompt, coverUrl } });
+      return { book, reusedBook: false };
     });
-    res.status(201).json({ book });
+    res.status(result.reusedBook ? 200 : 201).json(result);
   } catch (err) {
     next(err);
+  } finally {
+    releaseTopic?.();
   }
 });
 

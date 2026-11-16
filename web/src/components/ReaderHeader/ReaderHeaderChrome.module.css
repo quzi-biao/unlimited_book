@@ -1,0 +1,39 @@
+/* 分组仅负责排列，每个控件独立显示胶囊背景及边框。 */
+.group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  pointer-events: none;
+}
+
+.surface {
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  pointer-events: auto;
+}
+
+.action {
+  composes: surface;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.18s;
+}
+.action:hover { color: #fff; }
+.action:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 1px; }
+
+@media (max-width: 540px) {
+  .group { gap: 6px; }
+}

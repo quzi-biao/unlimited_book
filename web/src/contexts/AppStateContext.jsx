@@ -72,6 +72,10 @@ const initialState = {
 
 function reducer(state, action) {
   switch (action.type) {
+    case 'CLEAR_MISSING_BOOK':
+      if (state.currentBookId !== action.bookId) return state;
+      return { ...state, currentBookId: null, currentBookTitle: '', currentPageId: null,
+        currentImageUrl: null, bookFlat: [], exploreQueue: state.exploreQueue.filter(t => t.bookId !== action.bookId) };
     case 'SET_CURRENT_PAGE':
       return {
         ...state,
@@ -133,6 +137,10 @@ export function AppStateProvider({ children }) {
   useEffect(() => {
     saveQueue(state.exploreQueue);
   }, [state.exploreQueue]);
+
+  useEffect(() => {
+    if (!state.currentBookId) localStorage.removeItem(SESSION_KEY);
+  }, [state.currentBookId]);
 
   const value = { state, dispatch, setCurrentPage };
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

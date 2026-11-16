@@ -19,12 +19,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.MonetizationOn
 import androidx.compose.material.icons.rounded.FormatListBulleted
-import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
@@ -47,10 +45,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flipbook.ai.flipbook.migrated.api.topicsApi
-import com.flipbook.ai.flipbook.migrated.components.cachedimg.CachedImg
 import com.flipbook.ai.flipbook.migrated.components.common.LocalGuideController
-import com.flipbook.ai.flipbook.migrated.db.BookRecord
-import com.flipbook.ai.flipbook.migrated.hooks.rememberUseBooksState
+import com.flipbook.ai.flipbook.migrated.hooks.UseBooksState
 import com.google.gson.JsonObject
 import kotlinx.coroutines.launch
 
@@ -65,7 +61,7 @@ data class ShelfTopic(
     val name: String,
 )
 
-private data class TopicCategory(
+internal data class TopicCategory(
     val id: String,
     val name: String,
     val topics: List<ShelfTopic>,
@@ -76,6 +72,7 @@ private data class TopicCategory(
 fun ShelfPanel(
     open: Boolean,
     onClose: () -> Unit,
+    books: UseBooksState,
     backdropClosable: Boolean = true,
     /** 是否初始自动展开话题区（书单为空时由外层传 true） */
     initialTopicsOpen: Boolean = false,
@@ -90,7 +87,6 @@ fun ShelfPanel(
     modifier: Modifier = Modifier,
 ) {
     if (!open) return
-    val books = rememberUseBooksState()
     var topicsOpen by remember { mutableStateOf(false) }
     var categories by remember { mutableStateOf<List<TopicCategory>>(emptyList()) }
     var loadingCats by remember { mutableStateOf(false) }
@@ -130,6 +126,19 @@ fun ShelfPanel(
         }
     }
 
+    val compact = com.flipbook.ai.flipbook.migrated.components.common.LocalCompactLayout.current
+    val topicsContent: @Composable () -> Unit = {
+        ShelfTopics(categories, activeCategoryId, loadingCats, guidePending,
+            onCategorySelected = { activeCategoryId = it },
+            onSelectTopic = {
+                guideController?.advanceTo("explore_btn")
+                guidePending = false
+                onSelectTopic(it)
+                onClose()
+            },
+        )
+    }
+
     // 遮罩 + 面板，对应 JSX backdrop + panel
     Box(modifier = modifier.fillMaxSize()) {
         // 遮罩：透明背景，点击关闭
@@ -147,10 +156,10 @@ fun ShelfPanel(
         // 背景 rgba(14,16,26,0.96)，圆角 18dp，indigo 渐变描边，外阴影
         Row(
             modifier = Modifier
-                .padding(start = 14.dp, bottom = 88.dp)
+                .padding(start = 14.dp, end = if (compact) 14.dp else 0.dp, bottom = if (compact) 136.dp else 88.dp)
                 .fillMaxHeight(0.84f)
                 .align(Alignment.BottomStart)
-                .width(if (topicsOpen) 680.dp else 340.dp)
+                .then(if (compact) Modifier.fillMaxWidth() else Modifier.width(if (topicsOpen) 680.dp else 340.dp))
                 .background(Color(0xF50E101A), RoundedCornerShape(18.dp))
                 .border(1.dp, Color(0x996366F1), RoundedCornerShape(18.dp))
                 .clip(RoundedCornerShape(18.dp)),
@@ -243,47 +252,29 @@ fun ShelfPanel(
                     Divider(color = Color(0x12FFFFFF), thickness = 1.dp)
                 }
 
-                // 书本列表 (.listPane)
-                LazyColumn(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(0.dp),
-                ) {
-                    if (!books.loading && books.books.isEmpty()) {
-                        item {
-                            Text(
-                                "点击右侧话题，探索感兴趣的内容",
-                                color = Color(0xFF9CA3AF),
-                                fontSize = 13.sp,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 20.dp),
-                            )
-                        }
-                    }
-                    items(books.books, key = { it.id }) { book ->
-                        ShelfBookRow(
-                            book = book,
-                            selected = selectedBookId == book.id,
-                            isActive = activeBookId == book.id,
-                            onClick = {
-                                topicsOpen = false
-                                onSelectBook(
-                                    ShelfBookSelection(
-                                        id = book.id,
-                                        title = book.title.orEmpty(),
-                                        coverUrl = book.coverUrl,
-                                    ),
-                                )
-                            },
+                if (compact && topicsOpen) {
+                    Box(Modifier.weight(1f)) { topicsContent() }
+                } else ShelfBookList(
+                    books = books.books,
+                    loading = books.loading,
+                    activeBookId = activeBookId,
+                    selectedBookId = selectedBookId,
+                    onSelectBook = { book ->
+                        topicsOpen = false
+                        onSelectBook(
+                            ShelfBookSelection(
+                                id = book.id,
+                                title = book.title.orEmpty(),
+                                coverUrl = book.coverUrl,
+                            ),
                         )
-                    }
-                }
+                    },
+                    modifier = Modifier.weight(1f),
+                )
             }
 
             // 左右分割线，对应 CSS .leftPane border-right
-            if (topicsOpen) {
+            if (topicsOpen && !compact) {
                 Divider(
                     modifier = Modifier
                         .fillMaxHeight()
@@ -293,148 +284,8 @@ fun ShelfPanel(
             }
 
             // ── 右侧：话题分类 (.rightPane) ──
-            if (topicsOpen) {
-                val active = categories.firstOrNull { it.id == activeCategoryId }
-
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(Color(0x33000000)),
-                ) {
-                    // 分类列表 (.categoriesCol)
-                    LazyColumn(
-                        modifier = Modifier
-                            .width(120.dp)
-                            .fillMaxHeight()
-                            .padding(vertical = 8.dp),
-                    ) {
-                        if (loadingCats) {
-                            item {
-                                Text(
-                                    "加载中…",
-                                    color = Color(0xFF9CA3AF),
-                                    fontSize = 14.sp,
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                                )
-                            }
-                        }
-                        items(categories, key = { it.id }) { c ->
-                            val isCatActive = activeCategoryId == c.id
-                            // 对应 .categoryItem / .categoryActive：左侧 3dp 竖条 + indigo bg
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        if (isCatActive) Color(0x1A6366F1) else Color.Transparent,
-                                    )
-                                    .clickable { activeCategoryId = c.id }
-                                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                // 左侧激活竖条，对应 .categoryActive::before
-                                if (isCatActive) {
-                                    Box(
-                                        modifier = Modifier
-                                            .width(3.dp)
-                                            .height(16.dp)
-                                            .background(Color(0xFF6366F1), RoundedCornerShape(0.dp, 4.dp, 4.dp, 0.dp))
-                                            .padding(end = 8.dp),
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                }
-                                Text(
-                                    c.name,
-                                    color = if (isCatActive) Color(0xFFE5E7EB) else Color(0xFF9CA3AF),
-                                    fontSize = 14.sp,
-                                    fontWeight = if (isCatActive) FontWeight.Medium else FontWeight.Normal,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                        }
-                    }
-
-                    // 分类/话题间的竖线
-                    Divider(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(1.dp),
-                        color = Color(0x0DFFFFFF),
-                    )
-
-                    // 话题列表 (.topicsCol)，注册到 topic_list key
-                    LazyColumn(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .padding(8.dp)
-                            .onGloballyPositioned { coords ->
-                                guideController?.registerTarget("topic_list", coords.boundsInRoot())
-                            },
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        val topics = active?.topics ?: emptyList()
-
-                        if (topics.isEmpty() && !loadingCats) {
-                            item {
-                                Text(
-                                    "暂无话题",
-                                    color = Color(0xFF9CA3AF),
-                                    fontSize = 14.sp,
-                                    modifier = Modifier.padding(top = 20.dp, start = 14.dp),
-                                )
-                            }
-                        }
-                        items(topics, key = { it.id }) { topic ->
-                            val isFirstTopic = guidePending && topics.indexOf(topic) == 0
-                            // 对应 .topicItem：hover 白色透明 bg，带 ChevronRight
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .then(
-                                        // 第一个 topic 注册位置，触发引导
-                                        if (isFirstTopic) {
-                                            Modifier.onGloballyPositioned { coords ->
-                                                val bounds = coords.boundsInRoot()
-                                                if (bounds.width > 0f) {
-                                                    guideController?.registerTarget("first_topic", bounds)
-                                                    // 不再自动 show，由 GuideController 步骤驱动
-                                                }
-                                            }
-                                        } else Modifier
-                                    )
-                                    .clickable {
-                                        guideController?.advanceTo("explore_btn") // 话题点击自动推进到探索任务步骤
-                                        guidePending = false
-                                        onSelectTopic(topic)
-                                        onClose()
-                                    }
-                                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                // .topicName
-                                Text(
-                                    topic.name,
-                                    color = Color(0xFFE5E7EB),
-                                    fontSize = 14.sp,
-                                    modifier = Modifier.weight(1f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                // .topicArrow
-                                Icon(
-                                    Icons.Rounded.ChevronRight,
-                                    contentDescription = null,
-                                    tint = Color(0x80FFFFFF),
-                                    modifier = Modifier.size(14.dp),
-                                )
-                            }
-                        }
-                    }
-                }
+            if (topicsOpen && !compact) {
+                Box(Modifier.weight(1f).fillMaxHeight()) { topicsContent() }
             }
         }
     }
@@ -454,91 +305,6 @@ private fun IconBtn(onClick: () -> Unit, content: @Composable () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         content()
-    }
-}
-
-/**
- * 单本书条目，对应 JSX .bookItem / .bookSelected / .bookActive
- *
- * JSX 样式：无 border，hover 白色4%背景，selected 时 indigo 12%背景，
- * active 时左侧 2dp 竖条（accent 色），封面 38x38，书名 14sp，页数 13sp
- */
-@Composable
-private fun ShelfBookRow(
-    book: BookRecord,
-    selected: Boolean,
-    isActive: Boolean,
-    onClick: () -> Unit,
-) {
-    // 对应 .bookSelected: background rgba(99,102,241,0.12)
-    val bg = if (selected) Color(0x1F6366F1) else Color.Transparent
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(bg)
-            .clickable(onClick = onClick),
-    ) {
-        // 对应 .bookActive::before：左侧 2dp accent 竖条，固定高度避免 fillMaxHeight 约束问题
-        if (isActive) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .width(2.dp)
-                    .height(24.dp)
-                    .background(Color(0xFF6366F1), RoundedCornerShape(0.dp, 2.dp, 2.dp, 0.dp)),
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 7.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // 封面缩略图 (.bookCover)：38x38，圆角6，bg rgba(255,255,255,0.06)
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .background(Color(0x0FFFFFFF), RoundedCornerShape(6.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (book.coverUrl.isNullOrBlank()) {
-                    // 无封面：显示 BookOpen 图标，对应 JSX <BookOpen size={14} strokeWidth={1.5} />
-                    Icon(
-                        Icons.Rounded.MenuBook,
-                        contentDescription = null,
-                        tint = Color(0xFF9CA3AF),
-                        modifier = Modifier.size(14.dp),
-                    )
-                } else {
-                    CachedImg(
-                        src = book.coverUrl,
-                        alt = book.title.orEmpty(),
-                        modifier = Modifier.size(38.dp),
-                    )
-                }
-            }
-
-            // 书名 + 页数 (.bookMeta)
-            Column(modifier = Modifier.weight(1f).padding(start = 8.dp)) {
-                // .bookTitle：14sp，500 weight，color var(--text)
-                Text(
-                    book.title.orEmpty().ifBlank { "未命名" },
-                    color = Color(0xFFE5E7EB),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                // .bookPages：13sp，color var(--muted)
-                Text(
-                    "${book.count?.pages ?: book.pageCount ?: 0} 页",
-                    color = Color(0xFF9CA3AF),
-                    fontSize = 13.sp,
-                )
-            }
-        }
     }
 }
 

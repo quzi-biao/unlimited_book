@@ -1,11 +1,9 @@
 /* ── TtsPlayer —— 对应 Android TtsPlayer.kt ───────────────── */
 
-/* 容器：右下角悬浮，z-index 高于 ToolBar */
+/* 播放入口参与底栏排版，控制条绝对定位在其上方。 */
 .wrapper {
-  position: fixed;
-  bottom: 20px;
-  right: 24px;
-  z-index: 350;
+  position: relative;
+  flex: 0 0 var(--toolbar-control-size, 40px);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -15,8 +13,8 @@
 
 /* ── 圆形按钮（idle / paused / error）─────────────────────── */
 .roundBtn {
-  width: 52px;
-  height: 52px;
+  width: var(--toolbar-control-size, 40px);
+  height: var(--toolbar-control-size, 40px);
   border-radius: 50%;
   border: none;
   cursor: pointer;
@@ -27,13 +25,15 @@
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   pointer-events: all;
 }
-.roundBtn:hover { transform: scale(1.08); box-shadow: 0 6px 22px rgba(0,0,0,0.5); }
-.roundBtn:active { transform: scale(0.95); }
+.roundBtn:not(:disabled):hover { transform: scale(1.08); box-shadow: 0 6px 22px rgba(0,0,0,0.5); }
+.roundBtn:not(:disabled):active { transform: scale(0.95); }
 
 .roundBtnIdle {
-  background: rgba(255,255,255,0.10);
+  background: var(--color-surface);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
   color: var(--color-text);
-  border: 1px solid rgba(255,255,255,0.14);
+  border: 1px solid var(--color-border);
 }
 .roundBtnPaused {
   background: linear-gradient(135deg, #6366f1, #818cf8);
@@ -46,6 +46,9 @@
 
 /* ── 胶囊弹窗 ─────────────────────────────────────────────── */
 .pill {
+  position: absolute;
+  bottom: calc(100% + 24px);
+  right: 0;
   pointer-events: all;
   width: clamp(270px, 80vw, 360px);
   background: rgba(18, 16, 30, 0.92);
@@ -216,4 +219,10 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* 无书页时保留朗读位置，等待打开内容后启用。 */
+.roundBtnUnavailable {
+  opacity: 0.42;
+  cursor: not-allowed;
 }

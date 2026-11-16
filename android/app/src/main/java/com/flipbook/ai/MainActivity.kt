@@ -14,8 +14,13 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.displayCutoutPadding
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.core.view.WindowCompat
 import com.flipbook.ai.flipbook.migrated.MainEntry
+import com.flipbook.ai.flipbook.migrated.components.common.AppLayout
 import com.flipbook.ai.ui.FlipbookTheme
 
 class MainActivity : ComponentActivity() {
@@ -29,10 +34,10 @@ class MainActivity : ComponentActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         // OTA 安装后重启：lockNow() 使屏幕关闭，这里确保 App 启动时自动亮屏并跳过锁屏
         // setKeyguardDisabled(true) 已在 applyDeviceOwnerPolicies() 中设置，所以无锁屏界面
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+        if (!BuildConfig.PHONE_UI && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setTurnScreenOn(true)
             setShowWhenLocked(true)
-        } else {
+        } else if (!BuildConfig.PHONE_UI) {
             @Suppress("DEPRECATION")
             window.addFlags(
                 WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
@@ -43,7 +48,7 @@ class MainActivity : ComponentActivity() {
         enforceKioskShell()
 
         // Kiosk 模式下禁用返回键，防止退出当前任务栈。
-        onBackPressedDispatcher.addCallback(
+        if (!BuildConfig.PHONE_UI) onBackPressedDispatcher.addCallback(
             this,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() = Unit
@@ -52,7 +57,11 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             FlipbookTheme {
-                MainEntry()
+                AppLayout(
+                    phone = BuildConfig.PHONE_UI,
+                    modifier = if (BuildConfig.PHONE_UI) Modifier
+                        .background(Color(0xFF07080F)).displayCutoutPadding() else Modifier,
+                ) { MainEntry() }
             }
         }
     }
@@ -73,11 +82,23 @@ class MainActivity : ComponentActivity() {
 
     private fun enforceKioskShell() {
         enterImmersiveMode()
+        // 手机只隐藏阅读时的系统栏，系统返回和边缘手势仍然可用。
+        if (BuildConfig.PHONE_UI) return
         applyDeviceOwnerPolicies()
         ensureLockTask()
     }
 
     private fun enterImmersiveMode() {
+        if (BuildConfig.PHONE_UI) {
+            @Suppress("DEPRECATION")
+            window.statusBarColor = android.graphics.Color.rgb(7, 8, 15)
+            @Suppress("DEPRECATION")
+            window.navigationBarColor = android.graphics.Color.rgb(7, 8, 15)
+            WindowCompat.getInsetsController(window, window.decorView).apply {
+                isAppearanceLightStatusBars = false
+                isAppearanceLightNavigationBars = false
+            }
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.insetsController?.let { c ->
                 c.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())

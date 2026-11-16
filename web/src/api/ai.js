@@ -1,4 +1,5 @@
 import { get, post } from './client.js';
+import { getReadingViewport } from '../utils/readingViewport.js';
 
 /**
  * POST /api/ai/generate-image
@@ -8,7 +9,7 @@ import { get, post } from './client.js';
  * @param {string} [parentPageId]
  */
 export const generateImage = (query, bookId, parentPageId) =>
-  post('/api/ai/generate-image', { query, bookId, parentPageId });
+  post('/api/ai/generate-image', { query, bookId, parentPageId, viewport: getReadingViewport() });
 
 /**
  * POST /api/ai/identify-region
@@ -23,7 +24,7 @@ export const identifyRegion = (imageBase64) =>
  * 深入探索（图生图）
  */
 export const expandRegion = (params) =>
-  post('/api/ai/expand-region', params);
+  post('/api/ai/expand-region', { ...params, viewport: getReadingViewport() });
 
 /**
  * POST /api/ai/explain-spot

@@ -1,37 +1,19 @@
 /**
- * GPT-Image-2 API 调用封装（yunwu.ai 代理）
+ * GPT-Image-2 API 调用封装（OpenLux 代理）
  * 接口：
  *   POST /v1/images/generations  文生图
  *   POST /v1/images/edits        图生图（编辑）
  */
 import sharp from 'sharp';
+import { DEFAULT_IMAGE_SIZE, withImageSizePrompt } from './imageSize.js';
+import { validateImageOutput } from './imageOutput.js';
 
-const BASE_URL = process.env.GPTIMAGE_BASE_URL || 'https://yunwu.ai';
+const BASE_URL = process.env.GPTIMAGE_BASE_URL || 'https://api.openlux.ai';
 const API_KEY = process.env.GPTIMAGE_API_KEY;
 
 const MODEL = 'gpt-image-2';
-const SIZE_GEN = '1536x1024';   // 接近 16:9 横向
-const SIZE_EDIT = '1536x1024';  // 图生图用 3:2 横向（与文生图一致）
 const QUALITY = 'low';
 const FORMAT = 'jpeg';
-
-/**
- * 将 base64 data URL 裁剪为 16:10 比例
- * @param {string} dataUrl  data:<mime>;base64,<data>
- * @returns {Promise<string>}  裁剪后的 jpeg data URL
- */
-async function cropTo16x10(dataUrl) {
-  const commaIdx = dataUrl.indexOf(',');
-  const b64 = dataUrl.slice(commaIdx + 1);
-  const buf = Buffer.from(b64, 'base64');
-  const { height } = await sharp(buf).metadata();
-  const newWidth = Math.round(height * 16 / 10);
-  const cropped = await sharp(buf)
-    .resize(newWidth, height, { fit: 'cover', position: 'centre' })
-    .jpeg({ quality: 92 })
-    .toBuffer();
-  return `data:image/jpeg;base64,${cropped.toString('base64')}`;
-}
 
 /**
  * 将 base64 data URL 转换为 Blob（Node.js FormData 用）
@@ -50,9 +32,10 @@ function dataUrlToBuffer(dataUrl, filename = 'image.jpg') {
 /**
  * 文生图：调用 gpt-image-2 生成科普插画
  * @param {string} prompt  用户输入的查询词（已由 gemini.js 的 buildImagePrompt 构建）
- * @returns {Promise<string>}  base64 data URL（jpeg，16:10 比例）
+ * @param {string} [imageSize] 后端已校验的输出尺寸
+ * @returns {Promise<string>}  base64 data URL（jpeg，指定画幅）
  */
-export async function generateImageGPT(prompt) {
+export async function generateImageGPT(prompt, imageSize = DEFAULT_IMAGE_SIZE) {
   if (!API_KEY) throw new Error('GPTIMAGE_API_KEY 未配置');
 
   const res = await fetch(`${BASE_URL}/v1/images/generations`, {
@@ -63,9 +46,9 @@ export async function generateImageGPT(prompt) {
     },
     body: JSON.stringify({
       model: MODEL,
-      prompt,
+      prompt: withImageSizePrompt(prompt, imageSize),
       n: 1,
-      size: SIZE_GEN,
+      size: imageSize,
       quality: QUALITY,
       format: FORMAT,
     }),
@@ -95,16 +78,17 @@ export async function generateImageGPT(prompt) {
   }
 
   // 直接返回原图，不裁剪（gpt-image-2 生成的比例已合理，由前端 contain 完整展示）
-  return imageDataUrl;
+  return validateImageOutput(imageDataUrl, imageSize);
 }
 
 /**
  * 图生图（编辑）：将框选区域图片发送给 gpt-image-2 进行扩展
  * @param {string} selectionBase64   裁剪区域图片（data URL）
  * @param {string} prompt            扩展的文字提示词（已构建好）
- * @returns {Promise<string>}        扩展后图片的 base64 data URL（16:10）
+ * @param {string} [imageSize]        后端已校验的输出尺寸
+ * @returns {Promise<string>}        扩展后图片的 base64 data URL（指定画幅）
  */
-export async function expandImageGPT(selectionBase64, prompt) {
+export async function expandImageGPT(selectionBase64, prompt, imageSize = DEFAULT_IMAGE_SIZE) {
   if (!API_KEY) throw new Error('GPTIMAGE_API_KEY 未配置');
 
   // 发送前将框选图压缩到 ≤512px / q70，减少上传体积和服务端处理时间
@@ -129,9 +113,9 @@ export async function expandImageGPT(selectionBase64, prompt) {
   // 使用 FormData 发送 multipart
   const formData = new FormData();
   formData.append('model', MODEL);
-  formData.append('prompt', prompt);
+  formData.append('prompt', withImageSizePrompt(prompt, imageSize));
   formData.append('n', '1');
-  formData.append('size', SIZE_EDIT);
+  formData.append('size', imageSize);
   formData.append('quality', QUALITY);
   formData.append('format', FORMAT);
   formData.append('background', 'auto');
@@ -182,10 +166,12 @@ export async function expandImageGPT(selectionBase64, prompt) {
       }
 
       // 直接返回原图，不裁剪
-      return imageDataUrl;
+      return await validateImageOutput(imageDataUrl, imageSize);
 
     } catch (err) {
       lastError = err;
+      // 画幅不匹配不自动重复计费，交由调用方显示明确错误。
+      if (err.code === 'IMAGE_SIZE_MISMATCH') throw err;
       // 超时错误不重试（已等待 600s，继续重试无意义）
       if (err.name === 'TimeoutError' || err.name === 'AbortError') {
         console.error(`[expandImageGPT] 超时，不重试: ${err.message}`);

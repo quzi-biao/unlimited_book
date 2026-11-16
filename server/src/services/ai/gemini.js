@@ -9,12 +9,13 @@
  * 文本生成函数 → gemini-text.js
  *
  * 图像生成 Provider 切换：
- *   IMAGE_PROVIDER=gptimage  → 使用 yunwu.ai gpt-image-2（默认）
+ *   IMAGE_PROVIDER=gptimage  → 使用 OpenLux gpt-image-2（默认）
  *   IMAGE_PROVIDER=gemini    → 使用 Gemini 原生图像模型
  */
-import sharp from 'sharp';
 import { generateImageGPT, expandImageGPT } from './gptimage.js';
 import { pickTopics } from './knowledge-topics.js';
+import { DEFAULT_IMAGE_SIZE, withImageSizePrompt } from './imageSize.js';
+import { validateImageOutput } from './imageOutput.js';
 
 const GEMINI_KEY  = process.env.GEMINI_API_KEY;
 const GEMINI_BASE = process.env.GEMINI_BASE || 'https://generativelanguage.googleapis.com/v1beta';
@@ -24,25 +25,6 @@ const IMAGE_PROVIDER = (process.env.IMAGE_PROVIDER || 'gptimage').toLowerCase();
 
 const IMG_MODEL    = 'gemini-3-pro-image-preview';
 const EXPAND_MODEL = 'gemini-3-pro-image-preview';
-
-/**
- * 将 16:9 图片转为 16:10 比例。
- * 策略：保留全部高度，裁切两侧宽度（居中裁剪，各边约 5%）。
- * @param {string} dataUrl  data:<mime>;base64,<data>
- * @returns {Promise<string>} 裁剪后的 jpeg data URL
- */
-async function cropTo16x10(dataUrl) {
-  const commaIdx = dataUrl.indexOf(',');
-  const b64      = dataUrl.slice(commaIdx + 1);
-  const buf      = Buffer.from(b64, 'base64');
-  const { height } = await sharp(buf).metadata();
-  const newWidth = Math.round(height * 16 / 10);
-  const cropped  = await sharp(buf)
-    .resize(newWidth, height, { fit: 'cover', position: 'centre' })
-    .jpeg({ quality: 92 })
-    .toBuffer();
-  return `data:image/jpeg;base64,${cropped.toString('base64')}`;
-}
 
 /** 提取并解析 inlineData 图片，返回 base64 data URL */
 function extractImageFromCandidates(data) {
@@ -65,7 +47,7 @@ function extractImageFromCandidates(data) {
  * @param {string} query
  * @returns {Promise<string>} base64 data URL
  */
-export async function generateImage(query, promptStyle, configMap) {
+export async function generateImage(query, promptStyle, configMap, imageSize = DEFAULT_IMAGE_SIZE) {
   const provider = (promptStyle?.imageModel || configMap?.model_image_gen || process.env.IMAGE_PROVIDER || 'gptimage').toLowerCase();
 
   const basePrompt = promptStyle?.topicExploration ? promptStyle.topicExploration.replace(/\$\{query\}/g, query) : query;
@@ -73,10 +55,12 @@ export async function generateImage(query, promptStyle, configMap) {
   const finalPrompt = basePrompt + unified;
 
   if (provider === 'gptimage' || provider === 'gpt-image-2') {
-    console.log('[generateImage] 使用 gpt-image-2 (yunwu.ai)');
-    return generateImageGPT(finalPrompt);
+    console.log('[generateImage] 使用 gpt-image-2 (OpenLux)');
+    return generateImageGPT(finalPrompt, imageSize);
   }
 
+  // 其它供应商尚未验证自定义画幅，不静默返回错误比例并写入缓存。
+  if (imageSize !== DEFAULT_IMAGE_SIZE) throw new Error('当前生图服务尚不支持自适应画幅，请使用 GPT Image 服务');
   // Gemini 原生实现
   console.log('[generateImage] 使用 Gemini 原生');
   const url    = `${GEMINI_BASE}/models/${IMG_MODEL}:generateContent?key=${GEMINI_KEY}`;
@@ -84,7 +68,7 @@ export async function generateImage(query, promptStyle, configMap) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
+      contents: [{ parts: [{ text: withImageSizePrompt(finalPrompt, imageSize) }] }],
       generationConfig: {
         responseModalities: ['TEXT', 'IMAGE'],
         imageConfig: { aspectRatio: '16:9' },
@@ -94,7 +78,7 @@ export async function generateImage(query, promptStyle, configMap) {
 
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error?.message || `HTTP ${res.status}`);
-  return cropTo16x10(extractImageFromCandidates(data));
+  return validateImageOutput(extractImageFromCandidates(data), imageSize);
 }
 
 /**
@@ -104,7 +88,7 @@ export async function generateImage(query, promptStyle, configMap) {
  * @param {{ type: string, description: string }} identification
  * @returns {Promise<string>} 扩展后图片的 base64 data URL
  */
-export async function expandWithKnowledge(imageBase64, identification, promptStyle, configMap) {
+export async function expandWithKnowledge(imageBase64, identification, promptStyle, configMap, imageSize = DEFAULT_IMAGE_SIZE) {
   const { type = 'scene', description = '' } = identification;
   const provider = (promptStyle?.imageModel || configMap?.model_image_gen || process.env.IMAGE_PROVIDER || 'gptimage').toLowerCase();
 
@@ -122,10 +106,12 @@ export async function expandWithKnowledge(imageBase64, identification, promptSty
   const finalPrompt = basePrompt + unified;
 
   if (provider === 'gptimage' || provider === 'gpt-image-2') {
-    console.log('[expandWithKnowledge] 使用 gpt-image-2 图生图 (yunwu.ai)，传入框选区域图');
-    return expandImageGPT(imageBase64, finalPrompt);
+    console.log('[expandWithKnowledge] 使用 gpt-image-2 图生图 (OpenLux)，传入框选区域图');
+    return expandImageGPT(imageBase64, finalPrompt, imageSize);
   }
 
+  // 其它供应商尚未验证自定义画幅，不静默返回错误比例并写入缓存。
+  if (imageSize !== DEFAULT_IMAGE_SIZE) throw new Error('当前生图服务尚不支持自适应画幅，请使用 GPT Image 服务');
   // Gemini 原生实现
   console.log('[expandWithKnowledge] 使用 Gemini 原生');
   const commaIdx = imageBase64.indexOf(',');
@@ -140,7 +126,7 @@ export async function expandWithKnowledge(imageBase64, identification, promptSty
       contents: [{
         parts: [
           { inlineData: { mimeType, data: b64 } },
-          { text: finalPrompt },
+          { text: withImageSizePrompt(finalPrompt, imageSize) },
         ]
       }],
       generationConfig: {
@@ -152,5 +138,5 @@ export async function expandWithKnowledge(imageBase64, identification, promptSty
 
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error?.message || `HTTP ${res.status}`);
-  return cropTo16x10(extractImageFromCandidates(data));
+  return validateImageOutput(extractImageFromCandidates(data), imageSize);
 }

@@ -1,7 +1,7 @@
 /**
  * gemini-text.js — 文本/图片标题生成模块
  *
- * 使用 OpenAI-compatible API（yunwu.ai）+ gemini-2.5-flash
+ * 使用 OpenAI-compatible API（OpenLux）+ 可配置的 GPT 图文模型
  * 避免直连 generativelanguage.googleapis.com（国内服务器被封）
  *
  * 函数列表：
@@ -11,10 +11,11 @@
  *   generateRandomTopics   - 随机生成 5 个百科话题（从 DB topics 表）
  */
 import prisma from '../../config/db.js';
+import { fetchAndCompressImage } from './imageUtils.js';
 
-const BASE_URL = process.env.GPTIMAGE_BASE_URL || 'https://yunwu.ai';
+const BASE_URL = process.env.GPTIMAGE_BASE_URL || 'https://api.openlux.ai';
 const API_KEY  = process.env.GPTIMAGE_API_KEY;
-const MODEL    = 'gemini-2.5-flash';
+const MODEL    = process.env.GPTIMAGE_TEXT_MODEL || 'gpt-4.1-mini';
 
 /**
  * 调用 OpenAI chat completions（纯文本）
@@ -114,12 +115,7 @@ export async function generateTitleFromText(text) {
  * @returns {Promise<string|null>}
  */
 export async function generateTitleFromImage(imageUrl) {
-  const imgRes = await fetch(imageUrl);
-  if (!imgRes.ok) throw new Error(`图片下载失败 (${imgRes.status})`);
-  const buffer   = await imgRes.arrayBuffer();
-  const b64      = Buffer.from(buffer).toString('base64');
-  const mimeType = (imgRes.headers.get('content-type')?.split(';')[0]) || 'image/jpeg';
-  const dataUrl  = `data:${mimeType};base64,${b64}`;
+  const dataUrl = await fetchAndCompressImage(imageUrl);
 
   const prompt =
     `观察这张图片，用4到15个汉字（含标点）生成一个简洁精准的中文页面标题。\n` +

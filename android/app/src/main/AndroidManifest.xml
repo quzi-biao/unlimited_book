@@ -58,7 +58,7 @@
         <receiver
             android:name=".AppUpdateReceiver"
             android:enabled="true"
-            android:exported="true">
+            android:exported="false">
             <!-- ACTION_MY_PACKAGE_REPLACED: 系统广播，APK 替换成功后触发（兜底重启） -->
             <intent-filter>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />

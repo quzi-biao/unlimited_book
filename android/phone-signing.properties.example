@@ -1,0 +1,6 @@
+# 复制为 phone-signing.properties，并填写已有正式密钥的信息。
+# 配置及密钥不得提交到 Git，后续升级必须保留同一密钥。
+storeFile=/absolute/path/to/unlimited-book-phone-release.jks
+storePassword=replace-with-your-password
+keyAlias=unlimited-book-phone
+keyPassword=replace-with-your-password

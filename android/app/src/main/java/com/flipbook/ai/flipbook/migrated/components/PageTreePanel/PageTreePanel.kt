@@ -1,5 +1,6 @@
 package com.flipbook.ai.flipbook.migrated.components.pagetreepanel
 
+import com.flipbook.ai.flipbook.migrated.components.common.LocalCompactLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -52,10 +53,12 @@ fun PageTreePanel(
 ) {
     val realBookId = bookId ?: return
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val compact = LocalCompactLayout.current
+        val besideShelf = shelfOpen && !compact
         val maxWidthDp = maxWidth
-        val leftPad = if (shelfOpen) 364.dp else 14.dp
+        val leftPad = if (besideShelf) 364.dp else 14.dp
         val avail = maxWidthDp - leftPad - 14.dp
-        val panelWidth = if (shelfOpen) {
+        val panelWidth = if (besideShelf) {
             avail.coerceIn(240.dp, 400.dp)
         } else {
             400.dp.coerceAtMost(maxWidthDp - 28.dp)
@@ -70,14 +73,14 @@ fun PageTreePanel(
 
         Box(
             modifier = Modifier
-                .padding(start = if (shelfOpen) 364.dp else 14.dp, bottom = 88.dp)
+                .padding(start = if (besideShelf) 364.dp else 14.dp, bottom = if (compact) 136.dp else 88.dp)
                 .align(Alignment.BottomStart),
         ) {
             Column(
                 modifier = Modifier
                     .width(panelWidth)
                     .fillMaxHeight(0.82f)
-                    .heightIn(min = 500.dp)
+                    .heightIn(min = if (compact) 0.dp else 500.dp)
                     .clip(RoundedCornerShape(18.dp))
                     .background(PageTreePanelStyle.PanelBg)
                     .border(
@@ -118,7 +121,8 @@ fun PageTreePanel(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        bookTitle.ifBlank { "页面图谱" },
+                        modifier = Modifier.weight(1f),
+                        text = bookTitle.ifBlank { "页面图谱" },
                         color = PageTreePanelStyle.Title,
                         fontSize = 13.sp,
                         maxLines = 1,

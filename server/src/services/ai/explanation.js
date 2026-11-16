@@ -1,7 +1,7 @@
 /**
  * explanation.js — 书页科普解读生成服务
  *
- * 使用 OpenAI-compatible API（yunwu.ai）+ gemini-2.5-flash 多模态
+ * 使用 OpenAI-compatible API（OpenLux）+ 可配置的 GPT 图文模型 多模态
  * 避免直连 generativelanguage.googleapis.com（国内服务器被封）
  *
  * 风格：科普，生动活泼，600-1000字，中文，内容客观真实
@@ -9,9 +9,9 @@
 
 import { fetchAndCompressImage } from './imageUtils.js';
 
-const BASE_URL = process.env.GPTIMAGE_BASE_URL || 'https://yunwu.ai';
+const BASE_URL = process.env.GPTIMAGE_BASE_URL || 'https://api.openlux.ai';
 const API_KEY  = process.env.GPTIMAGE_API_KEY;
-const MODEL    = 'gemini-2.5-flash';
+const MODEL    = process.env.GPTIMAGE_TEXT_MODEL || 'gpt-4.1-mini';
 
 
 /**

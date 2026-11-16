@@ -54,16 +54,16 @@ export function ExploreQueuePanel({ open, onClose, onNavigate, onRetry }) {
   const { state, dispatch } = useAppState();
   const queue = state.exploreQueue;
 
-  if (!open || queue.length === 0) return null;
-
   const dismiss = useCallback((id) => {
     dispatch({ type: 'REMOVE_EXPLORE_TASK', id });
   }, [dispatch]);
 
+  if (!open || queue.length === 0) return null;
+
   return (
     <>
       <div className={styles.backdrop} onClick={onClose} />
-      <div className={`${styles.panel} glass-strong`}>
+      <div className={`${styles.panel} glass-strong`} id="explore-queue-panel">
         <div className={styles.header}>
           <div className={styles.headerTitle}>
             <Icon name="sparkles" size={15} color="#818cf8" />

@@ -1,5 +1,7 @@
 package com.flipbook.ai.flipbook.migrated.components.annotations
 
+import androidx.compose.ui.window.Dialog
+import com.flipbook.ai.flipbook.migrated.components.common.LocalCompactLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -42,6 +44,28 @@ import com.flipbook.ai.flipbook.migrated.db.AnnotationRecord
 /** 对应 WebView: components/Annotations/AnnotationCallout.jsx */
 @Composable
 fun AnnotationCallout(
+    annotations: List<AnnotationRecord>,
+    activeIdx: Int,
+    onTabChange: (Int) -> Unit,
+    pending: Boolean,
+    onClose: () -> Unit,
+    onDeepExplore: (() -> Unit)? = null,
+    onPlay: (() -> Unit)? = null,
+    playState: String = "idle",
+    modifier: Modifier = Modifier,
+) {
+    val content: @Composable (Modifier) -> Unit = { contentModifier ->
+        AnnotationCalloutBody(annotations, activeIdx, onTabChange, pending, onClose,
+            onDeepExplore, onPlay, playState, contentModifier)
+    }
+    if (LocalCompactLayout.current) {
+        Dialog(onDismissRequest = onClose) { content(Modifier.fillMaxWidth()) }
+    } else content(modifier)
+}
+
+/** 对应 WebView: components/Annotations/AnnotationCallout.jsx */
+@Composable
+private fun AnnotationCalloutBody(
     annotations: List<AnnotationRecord>,
     activeIdx: Int,
     onTabChange: (Int) -> Unit,

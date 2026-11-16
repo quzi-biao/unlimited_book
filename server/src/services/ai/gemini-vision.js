@@ -1,7 +1,7 @@
 /**
  * gemini-vision.js — 视觉识别模块
  *
- * 使用 OpenAI-compatible API（yunwu.ai）+ gemini-2.5-flash 多模态
+ * 使用 OpenAI-compatible API（OpenLux）+ 可配置的 GPT 图文模型 多模态
  * 避免直连 generativelanguage.googleapis.com（国内服务器被封）
  *
  * 函数列表：
@@ -12,9 +12,9 @@
  */
 import { fetchAndCompressImage, compressDataUrl } from './imageUtils.js';
 
-const BASE_URL = process.env.GPTIMAGE_BASE_URL || 'https://yunwu.ai';
+const BASE_URL = process.env.GPTIMAGE_BASE_URL || 'https://api.openlux.ai';
 const API_KEY  = process.env.GPTIMAGE_API_KEY;
-const MODEL    = 'gemini-2.5-flash';
+const MODEL    = process.env.GPTIMAGE_TEXT_MODEL || 'gpt-4.1-mini';
 
 
 /**
@@ -93,7 +93,7 @@ export async function identifyRegion(imageBase64, promptStyle, configMap) {
 
 /**
  * 探索标注：给定图片 URL + 点击坐标（比例），返回中文解释。
- * 下载图片后转为 base64 发送（国内服务器可访问 OSS，yunwu.ai 无法直接 fetch 文件 URL）
+ * 下载图片后转为 base64 发送（国内服务器可访问 OSS，OpenLux 无法直接 fetch 文件 URL）
  * @param {string} imageUrl  公开可访问的图片 URL（OSS）
  * @param {number} x         相对图片宽度的百分比 0~1
  * @param {number} y         相对图片高度的百分比 0~1

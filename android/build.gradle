@@ -10,8 +10,9 @@ buildscript {
     dependencies {
         // AGP 8.9.1：满足 androidx.activity:1.11.0 和 androidx.core:1.17.0 的最低要求
         classpath 'com.android.tools.build:gradle:8.9.1'
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0'
-        classpath 'org.jetbrains.kotlin.plugin.compose:org.jetbrains.kotlin.plugin.compose.gradle.plugin:2.1.0'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.21'
+        classpath 'org.jetbrains.kotlin.plugin.compose:org.jetbrains.kotlin.plugin.compose.gradle.plugin:2.1.21'
+        classpath 'org.jetbrains.compose:compose-gradle-plugin:1.8.2'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files

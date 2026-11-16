@@ -89,6 +89,7 @@
 /* 书单列表区 */
 .listPane {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 8px 0;
 }

@@ -34,12 +34,20 @@ class AppUpdateReceiver : BroadcastReceiver() {
      * PENDING  → 调起系统确认弹框
      */
     private fun handleInstallComplete(context: Context, intent: Intent) {
+        if (!intent.hasExtra(PackageInstaller.EXTRA_STATUS)) {
+            // 旧版用 IMMUTABLE 创建回调，系统无法附加安装状态。
+            // 兼容旧版升级到本版：只恢复应用界面，不把缺失状态当作安装失败或成功。
+            Log.w("AppUpdateReceiver", "Install callback has no status; reopening app for legacy updater")
+            launchApp(context)
+            return
+        }
         val status = intent.getIntExtra(
             PackageInstaller.EXTRA_STATUS,
             PackageInstaller.STATUS_FAILURE,
         )
         when (status) {
             PackageInstaller.STATUS_SUCCESS -> {
+                Log.i("AppUpdateReceiver", "Install succeeded; reopening app")
                 // 安装成功，MY_PACKAGE_REPLACED 稍后也会触发，这里立即重启作为补充
                 launchApp(context)
             }
@@ -55,6 +63,7 @@ class AppUpdateReceiver : BroadcastReceiver() {
                 if (confirmIntent != null) {
                     confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     runCatching { context.startActivity(confirmIntent) }
+                        .onFailure { Log.e("AppUpdateReceiver", "Cannot open install confirmation", it) }
                 }
             }
             else -> {
@@ -72,5 +81,7 @@ class AppUpdateReceiver : BroadcastReceiver() {
             addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
         }
         runCatching { context.startActivity(launchIntent) }
+            .onSuccess { Log.i("AppUpdateReceiver", "Requested MainActivity after update") }
+            .onFailure { Log.e("AppUpdateReceiver", "Cannot reopen app after update", it) }
     }
 }

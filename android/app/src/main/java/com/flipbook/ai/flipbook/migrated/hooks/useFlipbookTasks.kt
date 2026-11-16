@@ -40,6 +40,7 @@ internal class FlipbookTaskRunner(
 
         val body = mutableMapOf<String, Any?>(
             "query" to query,
+            "viewport" to task.payload["viewport"],
             "theme" to "dark",
             "mode" to "book",
             "parentPageId" to parentPageId,
@@ -53,6 +54,14 @@ internal class FlipbookTaskRunner(
         val pageId = json.str("pageId") ?: error("生成结果缺少 pageId")
         val newBookId = json.str("bookId") ?: bookId ?: error("生成结果缺少 bookId")
         val pageTitle = json.str("pageTitle") ?: query
+        if (json.str("reusedBook") == "true") {
+            // 已有书直接返回导航信息，不把同一首页重复追加到本地目录。
+            return mapOf(
+                "imageUrl" to url, "pageId" to pageId, "pageTitle" to pageTitle,
+                "bookId" to newBookId, "bookTitle" to (json.str("bookTitle") ?: query),
+                "reusedBook" to true,
+            )
+        }
 
         if (isNewSearch) {
             saveBook(
@@ -155,6 +164,7 @@ internal class FlipbookTaskRunner(
                 context,
                 mapOf(
                     "selectionImageBase64" to imageBase64,
+                    "viewport" to payload["viewport"],
                     "identification" to identification,
                     "theme" to "dark",
                     "style" to "illustration",

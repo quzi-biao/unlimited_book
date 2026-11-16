@@ -1,0 +1,29 @@
+.navigation {
+  composes: group from './ReaderHeaderChrome.module.css';
+  min-width: 0;
+  max-width: 100%;
+  justify-self: start;
+}
+
+.directoryButton {
+  composes: action from './ReaderHeaderChrome.module.css';
+  width: 40px;
+  flex-shrink: 0;
+}
+.active { color: var(--color-gold); }
+
+.titleButton {
+  composes: action from './ReaderHeaderChrome.module.css';
+  max-width: 160px;
+  min-width: 0;
+  flex-shrink: 1;
+}
+.titleText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 540px) {
+  .titleButton { font-size: 12px; }
+}

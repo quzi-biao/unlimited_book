@@ -4,8 +4,12 @@ import { requireAuth } from '../middleware/auth.js';
 import { generateImage, expandWithKnowledge } from '../services/ai/gemini.js';
 import { identifyRegion, explainSpot, explainRegionFromUrl, explainRegionFromBase64 } from '../services/ai/gemini-vision.js';
 import { generateTitle, generateTitleFromText, generateRandomTopics } from '../services/ai/gemini-text.js';
-import { buildImagePromptGPT } from '../services/ai/gptimage-prompts.js';
+import { DEFAULT_IMAGE_SIZE, resolveImageSize } from '../services/ai/imageSize.js';
+import { createPageWithImageCache } from '../services/pageImageCache.js';
+import { acquireTopicBookLock, findTopicBook, existingTopicResponse, saveTopicRoot } from '../services/topicBooks.js';
+import { sharedTopicImagesEnabled } from '../services/topicImagePolicy.js';
 import { uploadBase64 } from '../services/oss.js';
+import { readImageBuffer } from '../services/imageSource.js';
 import { buildPromptHash, buildContentHash, buildMd5 } from '../services/hash.js';
 import prisma from '../config/db.js';
 import { requirePoints, deductPoints, getPointCost } from '../services/points.js';
@@ -69,9 +73,22 @@ const bookOwnerData = (req) =>
 // ── POST /api/ai/generate-image ────────────────────────
 // 文生图，自动创建/更新 Book 和根页记录
 router.post('/generate-image', async (req, res, next) => {
+  let releaseTopic;
   try {
-    const { query, bookId, parentPageId } = req.body;
+    const { bookId, parentPageId } = req.body;
+    const query = typeof req.body.query === 'string' ? req.body.query.trim() : '';
     if (!query) return res.status(400).json({ error: 'query 不能为空' });
+    const owner = bookOwnerData(req);
+    if (!parentPageId) {
+      releaseTopic = await acquireTopicBookLock(owner, query);
+      const existing = await findTopicBook(prisma, owner, query);
+      // 已有书按内容身份复用，与窗口尺寸无关，也不检查或扣除生成点数。
+      if (existing?.page) return res.json(existingTopicResponse(existing));
+    }
+    if (bookId && !await prisma.book.findFirst({ where: bookWhere(req, bookId) })) {
+      return res.status(404).json({ error: 'Book 不存在' });
+    }
+    const imageSize = resolveImageSize(req.body.viewport);
 
     // 微信敏感词拦截
     const result = await checkText(query);
@@ -86,19 +103,27 @@ router.post('/generate-image', async (req, res, next) => {
     if (!await requirePoints(req.deviceId, res)) return;
 
     const userId     = getOwner(req);
-    const promptHash = buildPromptHash(query);
+    const promptHash = buildPromptHash(query, '', imageSize);
     const topicName  = query.trim();
-    const isTopic    = TOPIC_SET.has(topicName);
+    const isTopic    = TOPIC_SET.has(topicName) && imageSize === DEFAULT_IMAGE_SIZE;
 
     let imageUrl, contentHash;
-    let finalPromptHash = null; // 只有非百科的全新生成才保存 promptHash
+    let fromCache = false;
+    let finalPromptHash = null; // 首次生成的尺寸变体才占用 promptHash
 
-    if (isTopic) {
+    if (!sharedTopicImagesEnabled()) {
+      // 本地按需生成模式：首次打开不读公共图片，也不改写预生成缓存。
+      const { promptStyle, configMap } = await getDeviceAiConfig(req.deviceId);
+      const imageBase64 = await generateImage(query, promptStyle, configMap, imageSize);
+      imageUrl = await uploadBase64(imageBase64, 'pages', userId);
+      contentHash = buildContentHash(imageBase64);
+    } else if (isTopic) {
       // ── 百科话题：走全局 TopicCache（跨用户共享）──
       const cached = await prisma.topicCache.findUnique({ where: { topicName } });
       if (cached) {
         // 缓存命中：直接复用 OSS 图片，不调 AI
         imageUrl = cached.imageUrl;
+        fromCache = true;
         console.log(`[TopicCache] 命中 "${topicName}"，hitCount=${cached.hitCount + 1}`);
         // 异步更新命中次数（不阻塞响应）
         prisma.topicCache.update({
@@ -110,11 +135,11 @@ router.post('/generate-image', async (req, res, next) => {
         const { promptStyle, configMap } = await getDeviceAiConfig(req.deviceId);
         
         // 我们不再在这里调用 buildImagePromptGPT，而是由底层的 generateImage 自行组装
-        const imageBase64 = await generateImage(topicName, promptStyle, configMap);
+        const imageBase64 = await generateImage(topicName, promptStyle, configMap, imageSize);
         // 为了缓存 prompt 文本，我们需要生成最终 prompt，这里简便处理，将最终发送给大模型的 Prompt 提取回来或者在底层写回
         // 但其实 TopicCache 里的 promptText/promptMd5 可以使用 topicName 直接作为缓存键
         // 这里就使用拼装后的组合字符串来计算 MD5（因为底层也会拼装统一的 style）
-        const generatedPromptText = promptStyle.topicExploration.replace('${query}', topicName) + '\n\n' + promptStyle.unifiedStyle;
+        const generatedPromptText = (promptStyle?.topicExploration || '${query}').replace('${query}', topicName) + '\n\n' + (promptStyle?.unifiedStyle || '');
         const promptMd5  = buildMd5(generatedPromptText);
 
         imageUrl    = await uploadBase64(imageBase64, 'pages', userId);
@@ -131,17 +156,18 @@ router.post('/generate-image', async (req, res, next) => {
         }
       }
     } else {
-      // ── 非百科话题：按 Page.promptHash 走旧缓存逻辑 ──
+      // ── 新比例话题及非百科话题：按含尺寸的 Page.promptHash 共享缓存 ──
       const cachedPage = await prisma.page.findUnique({ where: { promptHash } });
       if (cachedPage) {
         imageUrl    = cachedPage.imageUrl;
+        fromCache = true;
         contentHash = cachedPage.contentHash;
       } else {
         const { promptStyle, configMap } = await getDeviceAiConfig(req.deviceId);
-        const imageBase64 = await generateImage(query, promptStyle, configMap);
+        const imageBase64 = await generateImage(query, promptStyle, configMap, imageSize);
         imageUrl    = await uploadBase64(imageBase64, 'pages', userId);
         contentHash = buildContentHash(imageBase64);
-        finalPromptHash = promptHash; // 只有全新生成的非百科图片，才占坑 promptHash
+        finalPromptHash = promptHash;
       }
     }
 
@@ -152,31 +178,27 @@ router.post('/generate-image', async (req, res, next) => {
       if (!book) return res.status(404).json({ error: 'Book 不存在' });
 
       // 在当前书里创建新页，parentPageId 指向来源页（构建层级）
-      page = await prisma.page.create({
-        data: {
+      page = await createPageWithImageCache(prisma, {
           bookId: book.id,
           parentPageId: parentPageId || null,
           imageUrl,
           prompt: query,
           contentHash,
-          promptHash: null,
+          promptHash: finalPromptHash,
           deviceId: req.deviceId || null,
-        },
       });
     } else {
-      // 创建新书（根页，无 parent）
-      book = await prisma.book.create({
-        data: { ...bookOwnerData(req), title: query, mode: 'book', prompt: query, coverUrl: imageUrl },
+      const saved = await saveTopicRoot(prisma, owner, query, {
+        imageUrl, prompt: query, contentHash, promptHash: finalPromptHash, deviceId: req.deviceId || null,
       });
-      page = await prisma.page.create({
-        data: { bookId: book.id, imageUrl, prompt: query, contentHash, promptHash: finalPromptHash, deviceId: req.deviceId || null },
-      });
+      if (saved.reusedBook) return res.json(existingTopicResponse(saved));
+      ({ book, page } = saved);
     }
 
-    // 从 prompt（用户查询词）生成中文标题，不需要下载图片，更快更稳
+    // 百科话题使用已确定的话题名，缓存打开时不再等待 AI 起标题。
     let pageTitle = query; // 默认降级到用户查询词
     try {
-      const generatedTitle = await generateTitleFromText(query);
+      const generatedTitle = isTopic ? topicName : await generateTitleFromText(query);
       if (generatedTitle) {
         pageTitle = generatedTitle;
         await prisma.page.update({ where: { id: page.id }, data: { title: generatedTitle } });
@@ -185,7 +207,7 @@ router.post('/generate-image', async (req, res, next) => {
       console.warn('[generate-image] 标题生成失败:', e.message);
     }
 
-    res.json({ imageUrl, bookId: book.id, pageId: page.id, pageTitle });
+    res.json({ imageUrl, bookId: book.id, pageId: page.id, pageTitle, fromCache });
 
     // 异步扣点（不阻塞响应）
     if (req.deviceId) {
@@ -195,6 +217,8 @@ router.post('/generate-image', async (req, res, next) => {
     }
   } catch (err) {
     next(err);
+  } finally {
+    releaseTopic?.();
   }
 });
 
@@ -243,8 +267,9 @@ router.post('/expand-region', async (req, res, next) => {
     if (!book) return res.status(404).json({ error: 'Book 不存在' });
 
     // 计算 promptHash
+    const imageSize = resolveImageSize(req.body.viewport);
     const promptStr  = JSON.stringify(identification);
-    const promptHash = buildPromptHash(promptStr, selectionImageBase64);
+    const promptHash = buildPromptHash(promptStr, selectionImageBase64, imageSize);
 
     let imageUrl, contentHash, selectionImageUrl;
 
@@ -259,14 +284,13 @@ router.post('/expand-region', async (req, res, next) => {
       selectionImageUrl = await uploadBase64(selectionImageBase64, 'selections', userId);
       // 调用 Gemini 扩展图片
       const { promptStyle, configMap } = await getDeviceAiConfig(req.deviceId);
-      const resultBase64 = await expandWithKnowledge(selectionImageBase64, identification, promptStyle, configMap);
+      const resultBase64 = await expandWithKnowledge(selectionImageBase64, identification, promptStyle, configMap, imageSize);
       imageUrl    = await uploadBase64(resultBase64, 'pages', userId);
       contentHash = buildContentHash(resultBase64);
     }
 
     // 始终创建新页记录（保证 bookId 和 parentPageId 正确，层级结构不被缓存破坏）
-    const page = await prisma.page.create({
-      data: {
+    const page = await createPageWithImageCache(prisma, {
         bookId,
         parentPageId: parentPageId || null,
         imageUrl,
@@ -274,10 +298,9 @@ router.post('/expand-region', async (req, res, next) => {
         selectionRegion,
         selectionImageUrl,
         contentHash,
-        promptHash: null,
+        promptHash: cachedPage ? null : promptHash,
         identification,
         deviceId: req.deviceId || null,
-      },
     });
 
     // 清理 prompt 文本（去掉 JSON 外壳、Markdown）
@@ -378,10 +401,8 @@ router.post('/crop-region', async (req, res, next) => {
     }
     const { x1 = 0, y1 = 0, x2 = 1, y2 = 1 } = region;
 
-    // 下载图像
-    const imgRes = await fetch(imageUrl);
-    if (!imgRes.ok) throw new Error(`图像下载失败 (${imgRes.status})`);
-    const buffer = Buffer.from(await imgRes.arrayBuffer());
+    // 读取远程图像或本地内容副本
+    const buffer = await readImageBuffer(imageUrl);
 
     // 获取图像元数据
     const meta = await sharp(buffer).metadata();

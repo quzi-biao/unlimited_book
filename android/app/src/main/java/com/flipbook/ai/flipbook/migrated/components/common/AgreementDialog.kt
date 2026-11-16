@@ -1,6 +1,8 @@
 package com.flipbook.ai.flipbook.migrated.components.common
 
 import android.content.Context
+import androidx.activity.compose.BackHandler
+import com.flipbook.ai.BuildConfig
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -55,6 +57,8 @@ fun AgreementDialog(
     modifier: Modifier = Modifier,
 ) {
     if (target == null) return
+    val compact = LocalCompactLayout.current
+    BackHandler(BuildConfig.PHONE_UI, onBack = onDismiss)
 
     val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
@@ -100,6 +104,7 @@ fun AgreementDialog(
             ) {
                 Text(
                     text = title,
+                    modifier = Modifier.weight(1f),
                     color = SettingsPageStyle.TextStrong,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
@@ -140,14 +145,14 @@ fun AgreementDialog(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 28.dp, vertical = 14.dp),
+                    .padding(horizontal = if (compact) 12.dp else 28.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(modifier = Modifier.weight(1f))
+                if (!compact) Box(modifier = Modifier.weight(1f))
                 Row(
                     modifier = Modifier
-                        .width(172.dp)
+                        .then(if (compact) Modifier.weight(1f) else Modifier.width(172.dp))
                         .height(38.dp)
                         .clip(CircleShape)
                         .background(Color(0x0DFFFFFF))
@@ -175,7 +180,7 @@ fun AgreementDialog(
 
                 Box(
                     modifier = Modifier
-                        .width(112.dp)
+                        .width(if (compact) 76.dp else 112.dp)
                         .height(38.dp)
                         .clip(CircleShape)
                         .background(SettingsPageStyle.PrimaryBtnGradient)

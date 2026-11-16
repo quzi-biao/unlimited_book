@@ -75,6 +75,32 @@ class FlipbookState internal constructor(
         },
     )
 
+    // 由阅读区域布局回调更新，生图和队列重试只读取快照。
+    private var readingViewport: Map<String, Int>? = null
+    private val openingTopics = mutableSetOf<String>()
+
+    /** 分类优先打开已有书或预生成首层；尚未准备的话题沿用现有流程。 */
+    fun browsePreparedTopic(query: String) {
+        if (!openingTopics.add(query)) return
+        scope.launch {
+            try {
+                val page = findPreparedTopicPage(context, query)
+                if (page != null) { openBookPage(page); updateShelfOpen(false) }
+                else browse(query)
+            } catch (error: Exception) { showQueueError(error.message ?: "话题打开失败") }
+            finally { openingTopics.remove(query) }
+        }
+    }
+
+    /** 记录阅读区域尺寸；忽略未完成布局的零尺寸。 */
+    fun updateReadingViewport(width: Int, height: Int) {
+        if (width > 0 && height > 0 &&
+            (readingViewport?.get("width") != width || readingViewport?.get("height") != height)
+        ) {
+            readingViewport = mapOf("width" to width, "height" to height)
+        }
+    }
+
     // Landing 已移除，始终显示 Viewport
     var showLanding by mutableStateOf(false)
         private set
@@ -156,13 +182,14 @@ class FlipbookState internal constructor(
         }
     }
 
+    /** 提交主题探索并返回是否成功入队，供输入框决定是否清空。 */
     fun browse(
         rawQuery: String,
         isNewSearch: Boolean = true,
         parentPageId: String? = null,
-    ) {
+    ): Boolean {
         val query = rawQuery.trim()
-        if (query.isBlank()) return
+        if (query.isBlank()) return false
 
         val dedupeKey = "topic-$query-${currentBookId ?: "new"}-${parentPageId ?: "root"}"
         val result = exploreQueueState.addTask(
@@ -173,6 +200,7 @@ class FlipbookState internal constructor(
                 sourcePageTitle = query,
                 payload = mapOf(
                     "query" to query,
+                    "viewport" to readingViewport,
                     "isNewSearch" to isNewSearch,
                     "bookId" to currentBookId,
                     "parentPageId" to parentPageId,
@@ -181,7 +209,13 @@ class FlipbookState internal constructor(
         )
         if (result == "queue_full") {
             showQueueError("队列已满（最多5个），请等待完成后再探索")
+            return false
         }
+        if (result == null) {
+            showQueueError("该话题已在探索队列中")
+            return false
+        }
+        return true
     }
 
     fun cancelExploreTask(taskId: String) {
@@ -310,6 +344,7 @@ class FlipbookState internal constructor(
                     "imageBase64" to imageBase64,
                     "box" to mapOf("x" to box.x, "y" to box.y, "w" to box.w, "h" to box.h),
                     "vpSize" to mapOf("w" to vpSize.w, "h" to vpSize.h),
+                    "viewport" to readingViewport,
                     "annotation" to annotation?.let {
                         mapOf(
                             "id" to it.id,

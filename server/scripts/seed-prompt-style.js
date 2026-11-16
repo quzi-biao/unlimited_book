@@ -47,7 +47,7 @@ IF the input image is predominantly UNIFORM COLOR, BLANK AREA, or FEATURELESS BA
 
 For ALL cases:
 Human figures (if any): anatomically correct, Studio Ghibli editorial art style. Add Simplified Chinese labels (up to 10 characters each) for ALL notable elements — fine hairline arrows, LARGE legible sans-serif, maximum contrast. Every region of the canvas must be filled with detailed illustration — no empty space.
-Full-bleed 3:2 landscape composition. No outer border. No frame. Ultra-high detail, every area filled with fine-line illustration. Artistic quality matching Scientific American or National Geographic.`;
+Full-bleed 16:9 landscape composition. No outer border. No frame. Ultra-high detail, every area filled with fine-line illustration. Artistic quality matching Scientific American or National Geographic.`;
 
 async function main() {
   const style = await prisma.promptStyle.upsert({
