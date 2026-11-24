@@ -1,16 +1,23 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Space, message, Tag, Popconfirm } from 'antd';
+import { Table, Button, Space, message, Tag, Popconfirm, Tooltip, Typography } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { adminApi } from '../api';
 
+const { Title } = Typography;
+
 export default function PromptStylesPage() {
   const navigate = useNavigate();
   const [styles, setStyles] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchStyles();
+    let active = true;
+    adminApi.promptStyles.list()
+      .then(data => { if (active) setStyles(data); })
+      .catch(err => { if (active) message.error(err.message); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, []);
 
   const fetchStyles = async () => {
@@ -42,22 +49,26 @@ export default function PromptStylesPage() {
     {
       title: '操作',
       key: 'action',
+      width: 100,
+      fixed: 'right',
       render: (_, record) => (
-        <Space size="middle">
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => navigate(`/admin/prompt-styles/${record.id}`)}
-          >
-            编辑
-          </Button>
+        <Space size={4}>
+          <Tooltip title="编辑">
+            <Button
+              type="text" size="small" icon={<EditOutlined />}
+              aria-label={`编辑${record.name}`}
+              onClick={() => navigate(`/admin/prompt-styles/${record.id}`)}
+            />
+          </Tooltip>
           <Popconfirm
             title="确定要删除此风格吗？如果设备正在使用，将可能引发错误。"
             onConfirm={() => handleDelete(record.id)}
             okText="删除"
             cancelText="取消"
           >
-            <Button type="link" danger icon={<DeleteOutlined />}>删除</Button>
+            <Tooltip title="删除">
+              <Button type="text" danger size="small" icon={<DeleteOutlined />} aria-label={`删除${record.name}`} />
+            </Tooltip>
           </Popconfirm>
         </Space>
       ),
@@ -66,8 +77,8 @@ export default function PromptStylesPage() {
 
   return (
     <div style={{ padding: 24, background: '#fff', borderRadius: 8 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-        <h2>提示词风格管理</h2>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+        <Title level={4} style={{ margin: 0 }}>提示词风格管理</Title>
         <Button
           type="primary"
           icon={<PlusOutlined />}

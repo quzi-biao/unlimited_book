@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card, Table, Space, Button, Modal, Form, Input, App, Typography } from 'antd';
+import { Card, Table, Button, Modal, Form, Input, App, Typography, Tooltip } from 'antd';
 import { EditOutlined, PlusOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import { adminApi } from '../api';
 
@@ -8,7 +8,7 @@ const { Title } = Typography;
 export default function AgreementsPage() {
   const { message, modal } = App.useApp();
   const [agreements, setAgreements] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [viewingContent, setViewingContent] = useState(null);
   const [editingId, setEditingId] = useState(null);
@@ -27,8 +27,13 @@ export default function AgreementsPage() {
   };
 
   useEffect(() => {
-    load();
-  }, []);
+    let active = true;
+    adminApi.agreements.list()
+      .then(res => { if (active) setAgreements(res.agreements || []); })
+      .catch(err => { if (active) message.error(err.message || '获取内容失败'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [message]);
 
   const handleSave = async () => {
     try {
@@ -74,28 +79,27 @@ export default function AgreementsPage() {
     {
       title: '操作',
       key: 'action',
+      width: 130,
+      fixed: 'right',
       render: (_, r) => (
-        <Space>
-          <Button
-            type="link"
-            icon={<EyeOutlined />}
-            onClick={() => setViewingContent(r)}
-          >
-            查看
-          </Button>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => {
-              setEditingId(r.id);
-              form.setFieldsValue(r);
-              setOpen(true);
-            }}
-          >
-            编辑
-          </Button>
-          <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDelete(r.id)}>删除</Button>
-        </Space>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Tooltip title="查看">
+            <Button type="text" size="small" icon={<EyeOutlined />} aria-label={`查看${r.title}`} onClick={() => setViewingContent(r)} />
+          </Tooltip>
+          <Tooltip title="编辑">
+            <Button
+              type="text" size="small" icon={<EditOutlined />} aria-label={`编辑${r.title}`}
+              onClick={() => {
+                setEditingId(r.id);
+                form.setFieldsValue(r);
+                setOpen(true);
+              }}
+            />
+          </Tooltip>
+          <Tooltip title="删除">
+            <Button type="text" danger size="small" icon={<DeleteOutlined />} aria-label={`删除${r.title}`} onClick={() => handleDelete(r.id)} />
+          </Tooltip>
+        </div>
       )
     }
   ];

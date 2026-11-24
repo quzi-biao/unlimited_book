@@ -5,7 +5,7 @@ import {
   App, Form, Switch, Popconfirm, InputNumber, Modal, Tooltip
 } from 'antd';
 import { adminApi } from '../api';
-import { DeleteOutlined, CheckCircleFilled, MinusCircleOutlined, PlusOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, CheckCircleFilled, MinusCircleOutlined, PlusOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 
 const { Text } = Typography;
 
@@ -243,11 +243,21 @@ export default function TopicCategoriesPage() {
     {
       title: '操作',
       key: 'action',
+      width: 104,
+      fixed: 'right',
       render: (_, r) => (
-        <Space size="middle">
-          <Button type="link" size="small" onClick={() => handleEdit(r)}>编辑</Button>
+        <Space size={4}>
+          <Tooltip title="编辑">
+            <Button
+              type="text" size="small" icon={<EditOutlined />}
+              aria-label={`编辑${r.name}`}
+              onClick={() => handleEdit(r)}
+            />
+          </Tooltip>
           <Popconfirm title="确定删除此分类？关联的话题将失去分类" onConfirm={() => handleDelete(r.id)}>
-            <Button type="link" danger size="small">删除</Button>
+            <Tooltip title="删除">
+              <Button type="text" danger size="small" icon={<DeleteOutlined />} aria-label={`删除${r.name}`} />
+            </Tooltip>
           </Popconfirm>
         </Space>
       )
