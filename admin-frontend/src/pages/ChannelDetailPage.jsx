@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Statistic, Row, Col, Table, Button, Modal, Form, DatePicker, Input, message } from 'antd';
+import { Alert, App, Card, Statistic, Row, Col, Table, Button, Modal, Form, DatePicker, Input } from 'antd';
 import { ArrowLeftOutlined, PlusOutlined } from '@ant-design/icons';
 import { adminApi } from '../api';
 import dayjs from 'dayjs';
@@ -8,11 +8,13 @@ import dayjs from 'dayjs';
 const { RangePicker } = DatePicker;
 
 export default function ChannelDetailPage() {
+  const { message } = App.useApp();
   const { id } = useParams();
   const navigate = useNavigate();
   const [channel, setChannel] = useState(null);
   const [settlements, setSettlements] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(null);
   const [settlementModalVisible, setSettlementModalVisible] = useState(false);
   const [previewData, setPreviewData] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -20,23 +22,44 @@ export default function ChannelDetailPage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const [chRes, setRes] = await Promise.all([
         adminApi.channels.get(id),
         adminApi.channels.settlements.list(id)
       ]);
+      if (!chRes.channel) throw new Error('渠道不存在');
       setChannel(chRes.channel);
       setSettlements(setRes.settlements || []);
     } catch (err) {
-      message.error(err.message);
+      setLoadError({ id, message: err.message || '获取渠道信息失败' });
+      message.error(err.message || '获取渠道信息失败');
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, message]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    let active = true;
+    Promise.all([
+      adminApi.channels.get(id),
+      adminApi.channels.settlements.list(id),
+    ]).then(([chRes, setRes]) => {
+      if (!active) return;
+      if (!chRes.channel) throw new Error('渠道不存在');
+      setChannel(chRes.channel);
+      setSettlements(setRes.settlements || []);
+      setLoadError(null);
+    }).catch(err => {
+      if (!active) return;
+      const error = err.message || '获取渠道信息失败';
+      setLoadError({ id, message: error });
+      message.error(error);
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, [id, message]);
 
   const handlePeriodChange = async (dates) => {
     if (!dates || !dates[0] || !dates[1]) {
@@ -92,7 +115,17 @@ export default function ChannelDetailPage() {
     { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', render: (val) => dayjs(val).format('YYYY-MM-DD HH:mm') }
   ];
 
-  if (!channel) return <div>加载中...</div>;
+  if (!channel || channel.id !== id) {
+    const error = loadError?.id === id ? loadError.message : '';
+    if (loading || !error) return <Card loading />;
+    return <Alert
+      type="error"
+      showIcon
+      title="渠道信息加载失败"
+      description={error}
+      action={<Button size="small" onClick={fetchData}>重试</Button>}
+    />;
+  }
 
   return (
     <div>
@@ -114,7 +147,7 @@ export default function ChannelDetailPage() {
             <Statistic 
               title="待结算分润 (元)" 
               value={(channel.pendingCommissionFen / 100).toFixed(2)} 
-              valueStyle={{ color: '#cf1322' }}
+              styles={{ content: { color: '#cf1322' } }}
             />
           </Card>
         </Col>
@@ -123,7 +156,7 @@ export default function ChannelDetailPage() {
             <Statistic 
               title="已结算分润 (元)" 
               value={(channel.settledCommissionFen / 100).toFixed(2)} 
-              valueStyle={{ color: '#3f8600' }}
+              styles={{ content: { color: '#3f8600' } }}
             />
           </Card>
         </Col>
@@ -151,7 +184,7 @@ export default function ChannelDetailPage() {
         }}
         onOk={() => form.submit()}
         width={700}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={handleCreateSettlement}>
           <Form.Item name="period" label="结算周期" rules={[{ required: true, message: '请选择结算周期' }]}>

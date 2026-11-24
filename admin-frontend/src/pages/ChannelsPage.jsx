@@ -26,6 +26,8 @@ export default function ChannelsPage() {
     try {
       const res = await adminApi.channels.list();
       setChannels(res.channels || []);
+    } catch (error) {
+      message.error(error.message || '获取渠道失败');
     } finally {
       setLoading(false);
     }
@@ -78,7 +80,15 @@ export default function ChannelsPage() {
       title: '操作', key: 'action', render: (_, r) => (
         <Space>
           <Button type="link" onClick={() => { setEditing(r); setOpen(true); form.setFieldsValue(r); }}>编辑</Button>
-          <Popconfirm title="确认删除？" onConfirm={async () => { await adminApi.channels.remove(r.id); load(); }}>
+          <Popconfirm title="确认删除？" onConfirm={async () => {
+            try {
+              await adminApi.channels.remove(r.id);
+              message.success('渠道已删除');
+              load();
+            } catch (error) {
+              message.error(error.message || '删除失败');
+            }
+          }}>
             <Button type="link" danger>删除</Button>
           </Popconfirm>
         </Space>
@@ -90,7 +100,7 @@ export default function ChannelsPage() {
     <div>
       <div className={styles.toolbar}>
         <div>
-          <Text type="secondary">先把渠道主体、联系人、分润规则和启停状态管起来。</Text>
+          <Text type="secondary">共 {channels.length} 个渠道 · 启用 {channels.filter(channel => channel.isActive).length} 个</Text>
         </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditing(null); form.resetFields(); setOpen(true); }}>新增渠道</Button>
       </div>
@@ -99,7 +109,7 @@ export default function ChannelsPage() {
         <Table rowKey="id" columns={columns} dataSource={channels} loading={loading} pagination={false} size="small" scroll={{ x: 1120 }} />
       </Card>
 
-      <Modal title={editing ? '编辑渠道' : '新增渠道'} open={open} onCancel={() => setOpen(false)} onOk={save} destroyOnClose>
+      <Modal title={editing ? '编辑渠道' : '新增渠道'} open={open} onCancel={() => setOpen(false)} onOk={save} destroyOnHidden>
         <Form form={form} layout="vertical" initialValues={{ type: 'affiliate', hardwareCommissionFen: 300, subscriptionCommissionRate: 0.2, isActive: true }}>
           <Form.Item name="name" label="渠道名称" rules={[{ required: true, message: '请输入渠道名称' }]}><Input /></Form.Item>
           <Form.Item name="type" label="渠道类型"><Select options={[{ value: 'affiliate', label: '分销商' }, { value: 'manager', label: '客户经理' }, { value: 'partner', label: '合作伙伴' }]} /></Form.Item>

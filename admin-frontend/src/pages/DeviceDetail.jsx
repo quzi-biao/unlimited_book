@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Card, Descriptions, Statistic, Table, Tabs, Button, Tag, Select,
+  Alert, Card, Descriptions, Statistic, Table, Tabs, Button, Tag, Select,
   Modal, Form, Input, InputNumber, Space, Typography, Row, Col, App,
 } from 'antd';
 import { ArrowLeftOutlined, EditOutlined, AppstoreOutlined } from '@ant-design/icons';
@@ -9,6 +9,20 @@ import { adminApi } from '../api';
 import dayjs from 'dayjs';
 
 const { Text } = Typography;
+
+const POINT_TYPE_LABELS = {
+  image: '图片生成',
+  consume_image: '图片生成',
+  tts: '语音合成',
+  consume_tts: '语音合成',
+  text: '文字解析',
+  consume_text: '文字解析',
+  admin_grant: '管理员调整',
+  purchase: '充值',
+  subscribe: '订阅',
+  refund: '退款',
+  init: '初始赠送',
+};
 
 function fmtDur(s) {
   if (!s) return '0s';
@@ -27,30 +41,62 @@ export default function DeviceDetail() {
   const [points, setPoints] = useState({ total: 0, ledger: [], balance: 0 });
   const [versions, setVersions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [loadedFor, setLoadedFor] = useState(null);
+  const loadRequest = useRef(0);
   const [grantOpen, setGrantOpen] = useState(false);
   const [grantLoading, setGrantLoading] = useState(false);
   const [versionOpen, setVersionOpen] = useState(false);
   const [selVersion, setSelVersion] = useState(null);
   const [form] = Form.useForm();
 
-  const loadAll = useCallback(async () => {
-    try {
-      const [dRes, sRes, pRes, vRes] = await Promise.all([
+  const fetchAll = useCallback(() => Promise.all([
         adminApi.devices.get(id),
         adminApi.devices.stats(id),
         adminApi.devices.points.list(id, { limit: 30 }),
         adminApi.versions.list(),
-      ]);
-      setDevice(dRes.device);
-      setStats(sRes);
-      setPoints(pRes);
-      setVersions(vRes.versions || []);
-    } finally {
-      setLoading(false);
-    }
+  ]), [id]);
+
+  const applyLoadedData = useCallback(([dRes, sRes, pRes, vRes], requestId) => {
+    if (requestId !== loadRequest.current) return;
+    setDevice(dRes.device);
+    setStats(sRes);
+    setPoints(pRes);
+    setVersions(vRes.versions || []);
+    setLoadError(null);
+    setLoadedFor(id);
   }, [id]);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  const applyLoadError = useCallback((error, requestId) => {
+    if (requestId !== loadRequest.current) return;
+    setLoadError({ id, message: error.message || '获取设备信息失败' });
+    message.error(error.message || '获取设备信息失败');
+  }, [id, message]);
+
+  const finishLoad = useCallback((requestId) => {
+    if (requestId === loadRequest.current) setLoading(false);
+  }, []);
+
+  const loadAll = useCallback(() => {
+    const requestId = ++loadRequest.current;
+    setLoading(true);
+    setLoadError(null);
+    fetchAll()
+      .then((data) => applyLoadedData(data, requestId))
+      .catch((error) => applyLoadError(error, requestId))
+      .finally(() => finishLoad(requestId));
+  }, [applyLoadError, applyLoadedData, fetchAll, finishLoad]);
+
+  useEffect(() => {
+    const requestId = ++loadRequest.current;
+    fetchAll()
+      .then((data) => applyLoadedData(data, requestId))
+      .catch((error) => applyLoadError(error, requestId))
+      .finally(() => finishLoad(requestId));
+    return () => {
+      if (loadRequest.current === requestId) loadRequest.current += 1;
+    };
+  }, [applyLoadError, applyLoadedData, fetchAll, finishLoad]);
 
   // ── 手动调整点数 ──
   const handleGrant = async (values) => {
@@ -84,7 +130,17 @@ export default function DeviceDetail() {
   };
 
   if (loading) return <Card loading style={{ margin: 24 }} />;
-  if (!device) return <div>设备不存在</div>;
+  if (!device || loadedFor !== id) {
+    const error = loadError?.id === id ? loadError.message : '';
+    if (!error) return <Card loading style={{ margin: 24 }} />;
+    return <Alert
+      type="error"
+      showIcon
+      title="设备信息加载失败"
+      description={error}
+      action={<Button size="small" onClick={() => { setLoading(true); setLoadError(null); loadAll(); }}>重试</Button>}
+    />;
+  }
 
   // 当前目标版本信息
   const targetVersion = versions.find((v) => v.id === device.targetVersionId);
@@ -93,7 +149,7 @@ export default function DeviceDetail() {
     { title: '时间', dataIndex: 'createdAt', key: 'createdAt', width: 140, render: v => <Text style={{ fontSize: 12 }}>{dayjs(v).format('MM-DD HH:mm:ss')}</Text> },
     { title: '变动', dataIndex: 'delta', key: 'delta', width: 80, render: v => <span style={{ color: v > 0 ? '#52c41a' : '#f5222d', fontWeight: 600 }}>{v > 0 ? '+' : ''}{v}</span> },
     { title: '余额', dataIndex: 'balance', key: 'balance', width: 80 },
-    { title: '类型', dataIndex: 'type', key: 'type', width: 90, render: v => <Tag color="purple" style={{ fontSize: 11 }}>{v}</Tag> },
+    { title: '类型', dataIndex: 'type', key: 'type', width: 90, render: v => <Tag color="purple" style={{ fontSize: 11 }}>{POINT_TYPE_LABELS[v] || v || '其他'}</Tag> },
     { title: '备注', dataIndex: 'reason', key: 'reason', width: 160, ellipsis: true, render: v => <Text type="secondary" style={{ fontSize: 12 }}>{v || '—'}</Text> },
   ];
 
@@ -163,7 +219,9 @@ export default function DeviceDetail() {
         />
         <div>
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, minWidth: 0 }}>
-            <span className="device-code" style={{ fontSize: 14, fontWeight: 600 }}>{device.deviceCode?.slice(0, 20)}…</span>
+            <span className="device-code" title={device.deviceCode || ''} style={{ fontSize: 14, fontWeight: 600 }}>
+              {device.deviceCode ? `${device.deviceCode.slice(0, 20)}${device.deviceCode.length > 20 ? '…' : ''}` : '—'}
+            </span>
             {device.online ? <Tag color="success">在线</Tag> : <Tag color="default">离线</Tag>}
           </div>
           <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 2 }}>
