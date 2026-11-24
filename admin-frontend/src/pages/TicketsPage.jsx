@@ -1,48 +1,108 @@
 import { useEffect, useState } from 'react';
-import { Button, Card, Drawer, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography, App } from 'antd';
+import { Button, Card, Drawer, Form, Input, Modal, Select, Table, Tag, Typography, App } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { adminApi } from '../api';
 
 const { Title, Text } = Typography;
 
+const ticketTypes = {
+  device: '设备故障',
+  payment: '支付问题',
+  refund: '退款申请',
+  feedback: '意见反馈',
+  other: '其他',
+};
+
+const ticketStatuses = {
+  open: { label: '待处理', color: 'blue' },
+  processing: { label: '处理中', color: 'processing' },
+  waiting: { label: '等待用户', color: 'gold' },
+  resolved: { label: '已解决', color: 'success' },
+  closed: { label: '已关闭', color: 'default' },
+};
+
+const ticketPriorities = {
+  low: { label: '低', color: 'default' },
+  medium: { label: '中', color: 'blue' },
+  high: { label: '高', color: 'orange' },
+  urgent: { label: '紧急', color: 'error' },
+};
+
 export default function TicketsPage() {
   const { message } = App.useApp();
   const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState(null);
   const [form] = Form.useForm();
   const [detailForm] = Form.useForm();
 
   const load = async () => {
-    const res = await adminApi.tickets.list();
-    setTickets(res.tickets || []);
+    setLoading(true);
+    try {
+      const res = await adminApi.tickets.list();
+      setTickets(res.tickets || []);
+    } catch (err) {
+      message.error(err.message || '获取工单失败');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    let active = true;
+    adminApi.tickets.list()
+      .then(res => { if (active) setTickets(res.tickets || []); })
+      .catch(err => { if (active) message.error(err.message || '获取工单失败'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [message]);
 
   const createTicket = async () => {
     const values = await form.validateFields();
-    await adminApi.tickets.create(values);
-    message.success('工单已创建');
-    setOpen(false);
-    form.resetFields();
-    load();
+    try {
+      await adminApi.tickets.create(values);
+      message.success('工单已创建');
+      setOpen(false);
+      form.resetFields();
+      load();
+    } catch (err) {
+      message.error(err.message || '创建工单失败');
+    }
   };
 
   const saveDetail = async () => {
     const values = await detailForm.validateFields();
-    await adminApi.tickets.update(detail.id, values);
-    message.success('已更新');
-    setDetail(null);
-    load();
+    try {
+      await adminApi.tickets.update(detail.id, values);
+      message.success('已更新');
+      setDetail(null);
+      load();
+    } catch (err) {
+      message.error(err.message || '更新失败');
+    }
   };
+
+  const activeCount = tickets.filter(ticket => ['open', 'processing', 'waiting'].includes(ticket.status)).length;
 
   const columns = [
     { title: '标题', dataIndex: 'title', key: 'title', ellipsis: true },
-    { title: '类型', dataIndex: 'type', key: 'type' },
-    { title: '优先级', dataIndex: 'priority', key: 'priority' },
-    { title: '状态', dataIndex: 'status', key: 'status', render: (v) => <Tag color={v === 'resolved' ? 'green' : 'blue'}>{v}</Tag> },
+    { title: '类型', dataIndex: 'type', key: 'type', render: v => ticketTypes[v] || v || '未知' },
+    {
+      title: '优先级', dataIndex: 'priority', key: 'priority',
+      render: v => {
+        const priority = ticketPriorities[v] || { label: v || '未知', color: 'default' };
+        return <Tag color={priority.color}>{priority.label}</Tag>;
+      },
+    },
+    {
+      title: '状态', dataIndex: 'status', key: 'status',
+      render: v => {
+        const status = ticketStatuses[v] || { label: v || '未知', color: 'default' };
+        return <Tag color={status.color}>{status.label}</Tag>;
+      },
+    },
     { title: '设备', key: 'device', render: (_, r) => r.device?.deviceCode ? <Link to={`/admin/devices/${r.deviceId}`}>{r.device.deviceCode}</Link> : '—' },
     { title: '渠道', key: 'channel', render: (_, r) => r.channel?.name ? <Link to={`/admin/channels/${r.channelId}`}>{r.channel.name}</Link> : '—' },
     { title: '留言数', key: 'msgs', render: (_, r) => r._count?.messages ?? 0 },
@@ -53,13 +113,14 @@ export default function TicketsPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
         <div>
-          <Text type="secondary">先支撑设备故障、支付退款和意见反馈三类工单。</Text>
+          <Title level={4} style={{ margin: 0 }}>客服工单</Title>
+          <Text type="secondary">全部 {tickets.length} 条 · 待处理 {activeCount} 条</Text>
         </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>新建工单</Button>
       </div>
 
       <Card>
-        <Table rowKey="id" columns={columns} dataSource={tickets} pagination={false} size="small" scroll={{ x: 900 }} />
+        <Table rowKey="id" columns={columns} dataSource={tickets} loading={loading} pagination={false} size="small" scroll={{ x: 900 }} />
       </Card>
 
       <Modal title="新建工单" open={open} onCancel={() => setOpen(false)} onOk={createTicket} destroyOnClose>

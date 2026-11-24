@@ -4,6 +4,7 @@ import { Table, Card, Button, Input, Modal, Select, message, Tag, Typography } f
 const { Text } = Typography;
 import { adminApi } from '../api';
 import dayjs from 'dayjs';
+import styles from './OrdersPage.module.css';
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -144,18 +145,18 @@ export default function OrdersPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
-        <Select allowClear placeholder="订单状态" style={{ width: 120 }} value={filterStatus} onChange={v => { setLoading(true); setFilterStatus(v); setPage(1); }}>
+      <div className={styles.filters}>
+        <Select className={styles.statusFilter} allowClear placeholder="订单状态" value={filterStatus} onChange={v => { setLoading(true); setFilterStatus(v); setPage(1); }}>
           <Select.Option value="pending">待支付</Select.Option>
           <Select.Option value="paid">已支付</Select.Option>
           <Select.Option value="refund_pending">退款处理中</Select.Option>
           <Select.Option value="refunded">已退款</Select.Option>
           <Select.Option value="cancelled">已取消</Select.Option>
         </Select>
-        <Select allowClear placeholder="归属渠道" style={{ width: 150 }} value={filterChannel} onChange={v => { setLoading(true); setFilterChannel(v); setPage(1); }}>
+        <Select className={styles.channelFilter} allowClear placeholder="归属渠道" value={filterChannel} onChange={v => { setLoading(true); setFilterChannel(v); setPage(1); }}>
           {channels.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
         </Select>
-        <Select allowClear placeholder="渠道结算状态" style={{ width: 150 }} value={filterSettlement} onChange={v => { setLoading(true); setFilterSettlement(v); setPage(1); }}>
+        <Select className={styles.settlementFilter} allowClear placeholder="渠道结算状态" value={filterSettlement} onChange={v => { setLoading(true); setFilterSettlement(v); setPage(1); }}>
           <Select.Option value="unsettled">未结算</Select.Option>
           <Select.Option value="settled">已结算</Select.Option>
         </Select>
@@ -163,7 +164,7 @@ export default function OrdersPage() {
           placeholder="搜索订单号或设备编号"
           allowClear
           onSearch={(v) => { setLoading(true); setSearch(v); setPage(1); }}
-          style={{ width: 300 }}
+          className={styles.search}
         />
       </div>
       <Card>

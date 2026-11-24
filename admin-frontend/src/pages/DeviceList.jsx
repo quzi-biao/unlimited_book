@@ -99,7 +99,7 @@ export default function DeviceList() {
   const columns = [
     {
       title: '设备码', dataIndex: 'deviceCode', key: 'deviceCode', ellipsis: true, width: 160,
-      render: v => <span className="device-code">{v?.slice(0, 16)}…</span>,
+      render: v => <span className="device-code" title={v || ''}>{v ? `${v.slice(0, 16)}${v.length > 16 ? '…' : ''}` : '—'}</span>,
     },
     {
       title: '版本', dataIndex: 'appVersion', key: 'appVersion', width: 80, ellipsis: true,
@@ -174,9 +174,25 @@ export default function DeviceList() {
 
   return (
     <div>
-      <div style={{ marginBottom: 16, color: '#595959', fontSize: 13 }}>
-        设备总数 <strong>{data.total}</strong> 台 &nbsp;·&nbsp;
-        当前在线 <strong style={{ color: '#52c41a' }}>{onlineCount}</strong> 台
+      <div className={styles.summary} aria-label="设备统计">
+        <div className={styles.summaryItem}>
+          <span className={styles.summaryLabel}>匹配设备</span>
+          <strong className={styles.summaryValue}>{data.total}</strong>
+          <span className={styles.summaryUnit}>台</span>
+        </div>
+        <span className={styles.summaryDivider} aria-hidden="true" />
+        <div className={styles.summaryItem}>
+          <span className={styles.onlineDot} aria-hidden="true" />
+          <span className={styles.summaryLabel}>本页在线</span>
+          <strong className={`${styles.summaryValue} ${styles.onlineValue}`}>{onlineCount}</strong>
+          <span className={styles.summaryUnit}>台</span>
+        </div>
+        <span className={styles.summaryDivider} aria-hidden="true" />
+        <div className={styles.summaryItem}>
+          <span className={styles.summaryLabel}>本页显示</span>
+          <strong className={styles.summaryValue}>{data.devices.length}</strong>
+          <span className={styles.summaryUnit}>台</span>
+        </div>
       </div>
 
       <Card>

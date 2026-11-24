@@ -1,0 +1,43 @@
+.filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.statusFilter {
+  width: 132px;
+}
+
+.channelFilter {
+  width: 156px;
+}
+
+.settlementFilter {
+  width: 156px;
+}
+
+.search {
+  width: 300px;
+}
+
+@media (max-width: 767px) {
+  .filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .statusFilter,
+  .channelFilter,
+  .settlementFilter {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .search {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+  }
+}

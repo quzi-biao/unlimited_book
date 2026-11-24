@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, Card, DatePicker, Form, Input, Modal, Select, Space, Table, Tag, Typography, App } from 'antd';
+import { Button, Card, DatePicker, Form, Modal, Select, Table, Tag, Typography, App } from 'antd';
 import { adminApi } from '../api';
 
 const { Title, Text } = Typography;
@@ -12,20 +12,44 @@ export default function SettlementsPage() {
   const [form] = Form.useForm();
 
   const load = async () => {
-    const [sRes, cRes] = await Promise.all([adminApi.settlements.list(), adminApi.channels.list()]);
-    setSettlements(sRes.settlements || []);
-    setChannels(cRes.channels || []);
+    try {
+      const [sRes, cRes] = await Promise.all([adminApi.settlements.list(), adminApi.channels.list()]);
+      setSettlements(sRes.settlements || []);
+      setChannels(cRes.channels || []);
+    } catch (err) {
+      message.error(err.message || '获取结算数据失败');
+    }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    let active = true;
+    Promise.all([adminApi.settlements.list(), adminApi.channels.list()])
+      .then(([sRes, cRes]) => {
+        if (!active) return;
+        setSettlements(sRes.settlements || []);
+        setChannels(cRes.channels || []);
+      })
+      .catch(err => { if (active) message.error(err.message || '获取结算数据失败'); });
+    return () => { active = false; };
+  }, [message]);
 
   const create = async () => {
-    const values = await form.validateFields();
-    await adminApi.settlements.generate(values);
-    message.success('已生成结算草稿');
-    setOpen(false);
-    form.resetFields();
-    load();
+    try {
+      const values = await form.validateFields();
+      const [periodStart, periodEnd] = values.period;
+      await adminApi.settlements.generate({
+        channelId: values.channelId,
+        periodStart: periodStart.toISOString(),
+        periodEnd: periodEnd.toISOString(),
+      });
+      message.success('已生成结算草稿');
+      setOpen(false);
+      form.resetFields();
+      load();
+    } catch (err) {
+      if (err.errorFields) return;
+      message.error(err.message || '生成结算草稿失败');
+    }
   };
 
   const columns = [
@@ -41,23 +65,25 @@ export default function SettlementsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
         <div>
           <Title level={4} style={{ margin: 0 }}>结算报表</Title>
-          <Text type="secondary">先生成渠道分润草稿，后续可继续加人工审核和打款状态。</Text>
+          <Text type="secondary">共 {settlements.length} 条结算记录</Text>
         </div>
         <Button type="primary" onClick={() => setOpen(true)}>生成结算草稿</Button>
       </div>
       <Card>
         <Table rowKey="id" columns={columns} dataSource={settlements} pagination={false} size="small" scroll={{ x: 760 }} />
       </Card>
-      <Modal title="生成结算草稿" open={open} onCancel={() => setOpen(false)} onOk={create} destroyOnClose>
+      <Modal title="生成结算草稿" open={open} onCancel={() => { setOpen(false); form.resetFields(); }} onOk={create} destroyOnClose>
         <Form form={form} layout="vertical">
           <Form.Item name="channelId" label="渠道" rules={[{ required: true, message: '请选择渠道' }]}>
             <Select options={channels.map((c) => ({ value: c.id, label: c.name }))} />
           </Form.Item>
-          <Form.Item name="periodStart" label="开始时间" rules={[{ required: true, message: '请输入开始时间' }]}>
-            <Input placeholder="2026-06-01T00:00:00.000Z" />
-          </Form.Item>
-          <Form.Item name="periodEnd" label="结束时间" rules={[{ required: true, message: '请输入结束时间' }]}>
-            <Input placeholder="2026-06-30T23:59:59.000Z" />
+          <Form.Item name="period" label="结算区间" rules={[{ required: true, message: '请选择结算区间' }]}>
+            <DatePicker.RangePicker
+              allowEmpty={[false, false]}
+              showTime={{ format: 'HH:mm' }}
+              format="YYYY-MM-DD HH:mm"
+              style={{ width: '100%' }}
+            />
           </Form.Item>
         </Form>
       </Modal>
