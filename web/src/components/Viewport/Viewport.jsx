@@ -330,11 +330,11 @@ export function Viewport({ treePage, safe, onTreeCrop, onOpenShelf, onToast, onE
       <div className={styles.empty}>
         <div className={styles.emptyInner}>
           <AppLogo size={72} className={styles.emptyIcon} />
-          <h2 className={styles.emptyTitle}>{safe ? '打开书架，开启探索' : '输入主题，开启探索'}</h2>
+          <h2 className={styles.emptyTitle}>{safe ? '从知识树开始探索' : '输入主题，开启探索'}</h2>
           <p className={styles.emptyDesc}>
-            从书架选一本图册，或在下方搜索感兴趣的话题
+            {safe ? '从已发布的知识树中选择一个主题继续学习' : '从知识树选择主题继续探索，或搜索新的兴趣话题'}
           </p>
-          <button className="btn btn-ghost shelf-start" onClick={onOpenShelf}>打开书架</button>
+          <button className="btn btn-ghost shelf-start" onClick={onOpenShelf}>打开知识树</button>
         </div>
       </div>
     );

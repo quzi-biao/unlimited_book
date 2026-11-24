@@ -16,14 +16,14 @@ export function ExploreQueueBtn({ jobs, open, onToggle }) {
   const total     = queue.length;
   const doneCount = queue.filter((t) => t.status === 'done').length;
   const hasActive = queue.some((t) => !['done','failed'].includes(t.status));
-  const hasDone   = doneCount > 0;
+  const hasFailed = queue.some((t) => t.status === 'failed');
 
   const label      = hasActive ? '探索任务' : '探索结果';
-  const accentColor = hasDone ? '#fb923c' : '#818cf8';
-  const borderColor = hasDone ? 'rgba(251,146,60,0.55)' : 'rgba(99,102,241,0.45)';
-  const cardBg      = hasDone ? 'rgba(45,20,5,0.88)' : 'rgba(22,18,46,0.85)';
-  const textColor   = hasDone ? '#fed7aa' : '#c7d2fe';
-  const glowColor   = hasDone ? '#fb923c' : '#6366f1';
+  const accentColor = hasActive ? '#f0c060' : hasFailed ? '#f87171' : '#4ade80';
+  const borderColor = hasActive ? 'rgba(240,192,96,0.4)' : hasFailed ? 'rgba(248,113,113,0.4)' : 'rgba(74,222,128,0.4)';
+  const cardBg      = hasActive ? 'rgba(35,29,16,0.92)' : hasFailed ? 'rgba(38,18,23,0.92)' : 'rgba(15,31,25,0.92)';
+  const textColor   = hasActive ? '#f1deb3' : hasFailed ? '#fecaca' : '#d1fae5';
+  const glowColor   = accentColor;
 
   return (
     <button
@@ -80,7 +80,7 @@ export function ExploreQueuePanel({ knowledge, open, onClose, onNavigate, onRetr
       <div ref={panel} role="region" aria-label="探索队列" className={`${styles.panel} glass-strong`} id="explore-queue-panel">
         <div className={styles.header}>
           <div className={styles.headerTitle}>
-            <Icon name="sparkles" size={15} color="#818cf8" />
+            <Icon name="sparkles" size={15} color="#f0c060" />
             探索队列
           </div>
           <button className="btn-icon" onClick={onClose} aria-label="关闭">

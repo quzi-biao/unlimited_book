@@ -101,7 +101,7 @@ export default function App({ knowledge }) {
   const handleGenerate = useCallback((result, query) => {
     setCurrentPage(result.bookId, result.bookTitle || query, result.pageId, result.imageUrl);
     addToast({ type: result.reusedBook ? 'info' : 'success', message: result.reusedBook
-      ? `已打开书架中的「${result.bookTitle || query}」，未重复生成` : `"${result.pageTitle}" 生成成功` });
+      ? `已复用「${result.bookTitle || query}」中的内容，未重复生成` : `"${result.pageTitle}" 生成成功` });
 
     // 更新书内平铺列表中新增的页面（如果是新书则重新加载）
     if (result.bookId) {

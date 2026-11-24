@@ -1,9 +1,9 @@
+import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { ConfigProvider, Layout, Menu, Avatar, Dropdown, App as AntApp } from 'antd';
+import { ConfigProvider, Layout, Menu, Avatar, Dropdown, Button, App as AntApp } from 'antd';
 import {
-  MobileOutlined, AppstoreOutlined,
-  SafetyOutlined, LogoutOutlined, DownOutlined, UnorderedListOutlined,
-  SettingOutlined, SoundOutlined, ShoppingOutlined, ShopOutlined
+  MobileOutlined, SafetyOutlined, LogoutOutlined, DownOutlined, MenuOutlined,
+  SettingOutlined, ShopOutlined
 } from '@ant-design/icons';
 import './index.css';
 import zhCN from 'antd/locale/zh_CN';
@@ -40,6 +40,9 @@ function RequireAuth({ children }) {
 function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const isNarrow = window.matchMedia('(max-width: 991px)').matches;
+  const [collapsed, setCollapsed] = useState(isNarrow);
+  const [openMenuKeys, setOpenMenuKeys] = useState(['operation', 'system']);
   const user = (() => {
     try { return JSON.parse(localStorage.getItem('admin_user') || 'null'); } catch { return null; }
   })();
@@ -108,22 +111,33 @@ function AdminLayout() {
 
   return (
     <Layout className="admin-layout">
-      <Sider width={220} className="admin-sider" theme="light">
+      {!collapsed && isNarrow && (
+        <button className="admin-sider-backdrop" aria-label="关闭导航" onClick={() => setCollapsed(true)} />
+      )}
+      <Sider width={220} breakpoint="lg" collapsedWidth={isNarrow ? 0 : 72} collapsible collapsed={collapsed}
+        onCollapse={setCollapsed} onBreakpoint={broken => setCollapsed(broken)} className="admin-sider" theme="light">
         <div className="admin-logo">
           <SafetyOutlined style={{ fontSize: 18 }} />
           无限之书
         </div>
         <Menu
           mode="inline"
-          defaultOpenKeys={['operation', 'system']}
+          openKeys={collapsed ? [] : openMenuKeys}
+          onOpenChange={keys => { if (!collapsed) setOpenMenuKeys(keys); }}
           selectedKeys={[selectedKey]}
           style={{ border: 'none', marginTop: 4 }}
           items={menuItems}
-          onClick={({ key }) => navigate(`/admin/${key}`)}
+          onClick={({ key }) => {
+            navigate(`/admin/${key}`);
+            if (isNarrow) setCollapsed(true);
+          }}
         />
       </Sider>
       <Layout>
         <div className="admin-header">
+          <Button className="admin-menu-toggle" type="text" icon={<MenuOutlined />}
+            aria-label={collapsed ? '打开导航' : '收起导航'} aria-expanded={!collapsed}
+            onClick={() => setCollapsed(value => !value)} />
           <span style={{ flex: 1, fontSize: 14, color: '#8c8c8c' }}>
             {menuItems.flatMap(m => m.children || [m]).find(m => m.key === selectedKey)?.label}
           </span>

@@ -8,20 +8,20 @@
   gap: 6px;
   padding: 7px 14px;
   border-radius: 20px;
-  border: 1px solid var(--border, rgba(99,102,241,0.45));
-  background: var(--bg, rgba(22,18,46,0.85));
-  color: var(--text, #c7d2fe);
+  border: 1px solid var(--border, rgba(240,192,96,0.4));
+  background: var(--bg, rgba(35,29,16,0.92));
+  color: var(--text, #f1deb3);
   font-size: 13px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: filter 0.18s, border-color 0.18s;
   white-space: nowrap;
   z-index: 0;
 }
 .pill:hover {
-  background: rgba(30,27,60,0.9);
+  filter: brightness(1.12);
 }
 .pillOpen {
-  background: #111827;
+  box-shadow: 0 0 0 2px rgba(240,192,96,0.12);
 }
 
 /* 呼吸光晕（对应 Android BreathingGlow）*/
@@ -29,18 +29,15 @@
   position: absolute;
   inset: -6px;
   border-radius: 26px;
-  background: radial-gradient(ellipse at center, var(--glow, #6366f1) 0%, transparent 70%);
-  opacity: 0.25;
+  background: radial-gradient(ellipse at center, var(--glow, #f0c060) 0%, transparent 70%);
+  opacity: 0.18;
   pointer-events: none;
   animation: pillBreath 1.9s ease-in-out infinite;
   z-index: -1;
 }
-.pill[style*="--glow:#fb923c"] .pillGlow {
-  animation-duration: 1.6s;
-}
 @keyframes pillBreath {
-  0%, 100% { opacity: 0.18; transform: scale(0.95); }
-  50%       { opacity: 0.38; transform: scale(1.05); }
+  0%, 100% { opacity: 0.12; transform: scale(0.97); }
+  50%       { opacity: 0.24; transform: scale(1.02); }
 }
 
 /* 旋转图标（loading 时）*/
@@ -48,8 +45,8 @@
   width: 14px;
   height: 14px;
   border: 2px solid rgba(255,255,255,0.12);
-  border-top-color: var(--accent, #818cf8);
-  border-left-color: var(--accent, #818cf8);
+  border-top-color: var(--accent, var(--color-gold));
+  border-left-color: var(--accent, var(--color-gold));
   border-radius: 50%;
   animation: spin 0.9s linear infinite;
   flex-shrink: 0;
@@ -82,6 +79,7 @@
   max-height: min(420px, calc(100dvh - 144px));
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
+  background: #0e1425;
   z-index: 320;
   display: flex;
   flex-direction: column;
@@ -89,7 +87,12 @@
   animation: slideDown 0.2s ease;
 }
 @media (max-width: 540px) {
-  .panel { right: 16px; width: min(340px, calc(100vw - 32px)); }
+  .panel {
+    top: 156px;
+    right: 16px;
+    width: min(340px, calc(100vw - 32px));
+    max-height: min(420px, calc(100dvh - 176px));
+  }
 }
 @keyframes slideDown {
   from { opacity: 0; transform: translateY(-10px); }
@@ -138,14 +141,14 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: var(--color-accent);
+  color: var(--color-text-2);
 }
 
 .spinner {
   width: 16px;
   height: 16px;
   border: 2px solid rgba(255,255,255,0.12);
-  border-top-color: var(--color-accent);
+  border-top-color: var(--color-gold);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -164,7 +167,7 @@
 }
 .taskSub {
   font-size: var(--text-xs);
-  color: var(--color-text-muted);
+  color: var(--color-text-2);
   margin: 2px 0 0;
 }
 .failed .taskSub { color: #f87171; }
@@ -204,14 +207,14 @@
   font-size: 12px;
   padding: 3px 10px;
   border-radius: 6px;
-  border: 1px solid rgba(251,146,60,0.4);
-  background: rgba(251,146,60,0.1);
-  color: #fed7aa;
+  border: 1px solid rgba(240,192,96,0.35);
+  background: rgba(240,192,96,0.09);
+  color: #f1deb3;
   cursor: pointer;
   transition: background 0.15s;
 }
 .taskViewBtn:hover {
-  background: rgba(251,146,60,0.2);
+  background: rgba(240,192,96,0.16);
 }
 
 .taskRetryBtn {
@@ -226,4 +229,17 @@
 }
 .taskRetryBtn:hover {
   background: rgba(248,113,113,0.2);
+}
+
+.pill:focus-visible,
+.taskViewBtn:focus-visible,
+.taskRetryBtn:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pillGlow,
+  .pillSpinner,
+  .spinner { animation: none; }
 }

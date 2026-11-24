@@ -13,8 +13,8 @@ export function ReaderNavigation({ treePage, onTree, onNavigate, children }) {
     <nav className={styles.navigation} aria-label="阅读导航" id="reader-navigation">
       <button className={`${styles.directoryButton} ${state.shelfOpen ? styles.active : ''}`}
         aria-pressed={state.shelfOpen}
-        onClick={() => toggle('TOGGLE_SHELF')} aria-label="目录" title="目录" id="btn-shelf">
-        <Icon name="bookshelf" size={18} />
+        onClick={() => toggle('TOGGLE_SHELF')} aria-label="知识树" title="知识树" id="btn-shelf">
+        <Icon name="tree" size={18} />
       </button>
       {reading.currentBookTitle && (
         <button className={styles.titleButton} id="btn-book-title"

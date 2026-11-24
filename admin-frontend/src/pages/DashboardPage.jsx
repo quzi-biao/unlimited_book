@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Card, Col, Row, Statistic, Table, Tag, Typography } from 'antd';
+import { Card, Statistic, Table, Tag } from 'antd';
 import { Link } from 'react-router-dom';
 import { adminApi } from '../api';
-
-const { Title, Text } = Typography;
+import styles from './DashboardPage.module.css';
 
 function fenToYuan(fen) {
   return `¥${(Number(fen || 0) / 100).toFixed(2)}`;
@@ -67,29 +66,24 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div>
-      <Text type="secondary">日活、留存、退货率等后续可继续加；当前先给你一个可运营的基础版。</Text>
+    <div className={styles.page}>
+      <section className={styles.metrics} aria-label="运营指标">
+        <Card className={styles.metric}><Statistic title="设备数" value={data.deviceCount} /></Card>
+        <Card className={styles.metric}><Statistic title="在线会话" value={data.onlineCount} /></Card>
+        <Card className={styles.metric}><Statistic title="订单数" value={data.orders} /></Card>
+        <Card className={styles.metric}><Statistic title="收入" value={fenToYuan(data.revenueFen)} /></Card>
+        <Card className={styles.metric}><Statistic title="有效渠道" value={data.channels} /></Card>
+        <Card className={styles.metric}><Statistic title="工单数" value={data.tickets} /></Card>
+        <Card className={styles.metric}><Statistic title="开放工单" value={data.openTickets} /></Card>
+        <Card className={styles.metric}><Statistic title="客单价" value={fenToYuan(data.avgOrderFen)} /></Card>
+      </section>
 
-      <Row gutter={16} style={{ marginTop: 16 }}>
-        <Col span={6}><Card><Statistic title="设备数" value={data.deviceCount} /></Card></Col>
-        <Col span={6}><Card><Statistic title="在线会话" value={data.onlineCount} /></Card></Col>
-        <Col span={6}><Card><Statistic title="订单数" value={data.orders} /></Card></Col>
-        <Col span={6}><Card><Statistic title="收入" value={fenToYuan(data.revenueFen)} /></Card></Col>
-      </Row>
-
-      <Row gutter={16} style={{ marginTop: 16 }}>
-        <Col span={6}><Card><Statistic title="有效渠道" value={data.channels} /></Card></Col>
-        <Col span={6}><Card><Statistic title="工单数" value={data.tickets} /></Card></Col>
-        <Col span={6}><Card><Statistic title="开放工单" value={data.openTickets} /></Card></Col>
-        <Col span={6}><Card><Statistic title="客单价" value={fenToYuan(data.avgOrderFen)} /></Card></Col>
-      </Row>
-
-      <Card title="最近订单" style={{ marginTop: 16 }}>
-        <Table rowKey="id" columns={orderColumns} dataSource={data.recentOrders} pagination={false} size="small" />
+      <Card title="最近订单" className={styles.tableCard}>
+        <Table rowKey="id" columns={orderColumns} dataSource={data.recentOrders} pagination={false} size="small" scroll={{ x: 980 }} />
       </Card>
 
-      <Card title="最近工单" style={{ marginTop: 16 }}>
-        <Table rowKey="id" columns={ticketColumns} dataSource={data.recentTickets} pagination={false} size="small" />
+      <Card title="最近工单" className={styles.tableCard}>
+        <Table rowKey="id" columns={ticketColumns} dataSource={data.recentTickets} pagination={false} size="small" scroll={{ x: 760 }} />
       </Card>
     </div>
   );

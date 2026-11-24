@@ -27,10 +27,10 @@ export default function LoginPage() {
 
   return (
     <div style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(135deg, #ede9fe 0%, #e0e7ff 50%, #f1f5f9 100%)',
+      minHeight: '100vh', padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: '#f5f7fa',
     }}>
-      <Card style={{ width: 380, boxShadow: '0 8px 32px rgba(0,0,0,0.1)', borderRadius: 16 }} styles={{ body: { padding: '36px 32px' } }}>
+      <Card style={{ width: 'min(380px, 100%)', boxShadow: '0 8px 28px rgba(15,23,42,0.08)', borderRadius: 8 }} styles={{ body: { padding: '32px 28px' } }}>
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <SafetyOutlined style={{ fontSize: 36, color: '#4f46e5', marginBottom: 10, display: 'block' }} />
           <div style={{ fontSize: 20, fontWeight: 700, color: '#262626' }}>无限之书</div>

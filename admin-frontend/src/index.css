@@ -1,13 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; }
-body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
 
 /* 覆盖 antd sidebar/layout 背景 */
 .admin-sider { background: #fff !important; border-right: 1px solid #f0f0f0; }
 .admin-layout { min-height: 100vh; }
 .admin-content {
   background: #f5f7fa;
+  min-width: 0;
   padding: 24px;
   /* 始终显示滚动条并保留占位，防止弹窗开关时内容区宽度跳动 */
   overflow-y: scroll;
@@ -20,6 +21,18 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
   display: flex; align-items: center; gap: 12px;
   height: 56px;
 }
+.admin-menu-toggle {
+  display: inline-flex !important;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  align-items: center;
+  justify-content: center;
+  margin-left: -8px;
+}
+.admin-sider .ant-layout-sider-trigger,
+.admin-sider .ant-layout-sider-zero-width-trigger { display: none !important; }
+.admin-sider-backdrop { display: none; }
 .admin-logo {
   font-size: 16px; font-weight: 700; color: #4f46e5;
   display: flex; align-items: center; gap: 8px;
@@ -39,4 +52,31 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
   font-family: 'SF Mono', 'Fira Code', monospace;
   font-size: 12px; color: #4f46e5;
   background: #ede9fe; padding: 2px 6px; border-radius: 4px;
+}
+
+@media (max-width: 600px) {
+  .admin-content { padding: 16px 12px; }
+  .admin-header { height: 52px; padding: 0 12px; }
+}
+
+@media (max-width: 991px) {
+  .admin-sider {
+    position: fixed !important;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 101;
+    height: 100dvh !important;
+    overflow-y: auto;
+    box-shadow: 4px 0 20px rgba(15,23,42,0.12);
+  }
+  .admin-sider-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    border: 0;
+    background: rgba(15,23,42,0.32);
+    cursor: pointer;
+  }
 }

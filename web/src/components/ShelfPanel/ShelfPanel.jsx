@@ -28,8 +28,12 @@ export function ShelfPanel({ knowledge, onLearning, onAccount, onClose, onToast 
       <header className={styles.header}>
         <h2 className={styles.drawerTitle}>我的知识树</h2>
         <div className={styles.headerActions}>
-          {onLearning && <button type="button" className={styles.utilityButton} onClick={onLearning}>学习足迹</button>}
-          {onAccount && <button type="button" className={styles.utilityButton} onClick={onAccount}>我的账号</button>}
+          {onLearning && <button type="button" className={styles.utilityButton} aria-label="学习足迹" title="学习足迹" onClick={onLearning}>
+            <span className={styles.utilityFullLabel}>学习足迹</span><span className={styles.utilityCompactLabel}>足迹</span>
+          </button>}
+          {onAccount && <button type="button" className={styles.utilityButton} aria-label="我的账号" title="我的账号" onClick={onAccount}>
+            <span className={styles.utilityFullLabel}>我的账号</span><span className={styles.utilityCompactLabel}>账号</span>
+          </button>}
           <button className="btn-icon" onClick={onClose} aria-label="返回阅读"><Icon name="close" size={16} /></button>
         </div>
       </header>
@@ -43,7 +47,9 @@ export function ShelfPanel({ knowledge, onLearning, onAccount, onClose, onToast 
           <div className={styles.treeControls}>
             <label>内容来源
               <select aria-label="选择公共知识树" value={profile.selectedTreeId || ''}
+                disabled={!snapshot.trees.length}
                 onChange={event => knowledge.settings({ selectedTreeId: event.target.value }).catch(error => onToast?.({ type: 'error', message: error.message }))}>
+                {!snapshot.trees.length && <option value="">暂无已发布知识树</option>}
                 {snapshot.trees.map(tree => <option value={tree.id} key={tree.id}>{tree.title}</option>)}
               </select>
             </label>

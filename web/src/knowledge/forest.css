@@ -10,6 +10,7 @@
 .forest-map .forest-zoom button{font-size:12px;padding:3px 10px;border-radius:8px;background:var(--color-bg-3,#141b32);border-color:#30394c;white-space:nowrap}
 .knowledge-map.forest-map .forest-scroll{height:clamp(310px,60dvh,660px);max-height:none;overflow:auto;overscroll-behavior:contain;scrollbar-color:#445066 #0c111e;scrollbar-width:thin;cursor:grab;outline-offset:-3px}
 .forest-scroll.dragging{cursor:grabbing;user-select:none}
+.forest-scroll>.empty{display:grid;width:100%;min-height:100%;place-items:center;margin:0;padding:28px;line-height:1.7;text-align:center;color:var(--muted)}
 .forest-svg{display:block;margin:0 auto;overflow:hidden;flex-shrink:0}
 .forest-branch,.forest-twig,.personal-tree-trunk,.personal-tree-limb,.personal-tree-roots,.forest-connection{fill:none;stroke:#344052;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
 .forest-branch.lit,.forest-twig.lit,.personal-tree-trunk.lit,.personal-tree-limb.lit{stroke:#c8a05a}
@@ -33,6 +34,7 @@
 .forest-node:hover .forest-card,.forest-node.selected .forest-card{stroke:#f0d7a4;stroke-width:1.8;fill:#2d2c33}
 .forest-node:focus-visible .forest-focus{stroke:#f0c060}
 .forest-opened{fill:#e5ba6b}
+.knowledge-app .treeControls select:disabled{color:var(--color-text-2);cursor:not-allowed;border-color:#303746;background:#121a2b;opacity:1}
 .personal-tree-root rect{fill:#27262d;stroke:#a8854d;stroke-width:1.2}
 .personal-tree-root text{fill:#f0d7a4;font-size:17px}
 .personal-tree-root .personal-tree-caption{fill:#a59780;font-size:11px}

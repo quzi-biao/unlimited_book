@@ -41,7 +41,10 @@ const icons = {
   ),
   tree: (
     <>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0-4.5-4.5m0 0L12 16.5m4.5-4.5V3" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8m0 0L7 8m5 5 5-5M7 8V5m10 3V5m-5 8V6" />
+      <circle cx="7" cy="4" r="1.5" />
+      <circle cx="12" cy="4" r="1.5" />
+      <circle cx="17" cy="4" r="1.5" />
     </>
   ),
   pages: (
