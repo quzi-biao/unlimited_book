@@ -4,6 +4,12 @@ import { adminApi } from '../api';
 
 const { Title, Text } = Typography;
 
+const settlementStatuses = {
+  draft: { label: '草稿', color: 'default' },
+  confirmed: { label: '已确认', color: 'processing' },
+  paid: { label: '已打款', color: 'success' },
+};
+
 export default function SettlementsPage() {
   const { message } = App.useApp();
   const [settlements, setSettlements] = useState([]);
@@ -57,7 +63,13 @@ export default function SettlementsPage() {
     { title: '区间', key: 'range', render: (_, r) => `${String(r.periodStart).slice(0, 10)} ~ ${String(r.periodEnd).slice(0, 10)}` },
     { title: '订单数', dataIndex: 'hardwareOrderCount', key: 'hardwareOrderCount' },
     { title: '渠道分润', dataIndex: 'totalCommissionFen', key: 'totalCommissionFen', render: (v) => `¥${(v / 100).toFixed(2)}` },
-    { title: '状态', dataIndex: 'status', key: 'status', render: (v) => <Tag>{v}</Tag> },
+    {
+      title: '状态', dataIndex: 'status', key: 'status',
+      render: v => {
+        const status = settlementStatuses[v] || { label: v || '未知', color: 'default' };
+        return <Tag color={status.color}>{status.label}</Tag>;
+      },
+    },
   ];
 
   return (
