@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext.jsx';
 import { getPlans, createOrder, getOrderStatus } from '../../api/payment.js';
 import { LoadingSpinner } from '../common/LoadingSpinner.jsx';
 import { Icon } from '../common/Icons.jsx';
+import { useModalDialog } from '../../hooks/useModalDialog.js';
 import styles from './ShopPage.module.css';
 import QRCode from 'qrcode';
 
@@ -20,6 +21,13 @@ export function ShopPage({ onToast }) {
   const [paying,   setPaying]   = useState(false);
   const pollRef = useRef(null);
   const canvasRef = useRef(null);
+  const handleClose = useCallback(() => {
+    clearInterval(pollRef.current);
+    setQrState(null);
+    setPaying(false);
+    dispatch({ type: 'SET_SHOP', open: false });
+  }, [dispatch]);
+  const dialogRef = useModalDialog(state.shopOpen, handleClose);
 
   useEffect(() => {
     if (!state.shopOpen) return;
@@ -72,21 +80,14 @@ export function ShopPage({ onToast }) {
     }
   }, [selected, paying, refreshBalance, dispatch, onToast]);
 
-  const handleClose = () => {
-    clearInterval(pollRef.current);
-    setQrState(null);
-    setPaying(false);
-    dispatch({ type: 'SET_SHOP', open: false });
-  };
-
   if (!state.shopOpen) return null;
 
   return (
     <>
       <div className={styles.backdrop} onClick={handleClose} />
-      <div className={`${styles.panel} glass-strong`}>
+      <div ref={dialogRef} className={`${styles.panel} glass-strong`} role="dialog" aria-modal="true" aria-labelledby="shop-dialog-title" tabIndex={-1}>
         <div className={styles.header}>
-          <h2 className={styles.title}><Icon name="topup" size={20} /> 学习点数充值</h2>
+          <h2 id="shop-dialog-title" className={styles.title}><Icon name="topup" size={20} /> 学习点数充值</h2>
           <button className="btn-icon" onClick={handleClose} aria-label="关闭"><Icon name="close" size={18} /></button>
         </div>
 

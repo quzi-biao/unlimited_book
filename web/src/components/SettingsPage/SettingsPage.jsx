@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAppState } from '../../contexts/AppStateContext.jsx';
 import { getVoices, setVoice, getPromptStyles, setPromptStyle, factoryReset } from '../../api/device.js';
 import { LoadingSpinner } from '../common/LoadingSpinner.jsx';
 import { Icon } from '../common/Icons.jsx';
+import { useModalDialog } from '../../hooks/useModalDialog.js';
 import styles from './SettingsPage.module.css';
 
 /**
@@ -12,16 +13,18 @@ import styles from './SettingsPage.module.css';
 export function SettingsPage({ onKnowledgeAccount, onToast }) {
   const { state, dispatch } = useAppState();
   const [tab, setTab] = useState('voice');
+  const close = useCallback(() => dispatch({ type: 'SET_SETTINGS', open: false }), [dispatch]);
+  const dialogRef = useModalDialog(state.settingsOpen, close);
 
   if (!state.settingsOpen) return null;
 
   return (
     <>
-      <div className={styles.backdrop} onClick={() => dispatch({ type: 'SET_SETTINGS', open: false })} />
-      <div className={`${styles.panel} glass-strong`}>
+      <div className={styles.backdrop} onClick={close} />
+      <div ref={dialogRef} className={`${styles.panel} glass-strong`} role="dialog" aria-modal="true" aria-labelledby="settings-dialog-title" tabIndex={-1}>
         <div className={styles.header}>
-          <h2 className={styles.title}>设置</h2>
-          <button className="btn-icon" onClick={() => dispatch({ type: 'SET_SETTINGS', open: false })} aria-label="关闭"><Icon name="close" size={18} /></button>
+          <h2 id="settings-dialog-title" className={styles.title}>设置</h2>
+          <button className="btn-icon" onClick={close} aria-label="关闭"><Icon name="close" size={18} /></button>
         </div>
 
         <div className={styles.tabs}>

@@ -68,6 +68,7 @@ export function ToolBar({ onSearch, safe, onGenerate, onToast, hidden, playbackC
           onFocus={() => setSearchFocused(true)}
           onBlur={() => setSearchFocused(false)}
           id="input-query"
+          data-dialog-return-focus
           disabled={generating}
         />
         {(query || searchFocused) && (
