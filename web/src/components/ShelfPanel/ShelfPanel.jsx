@@ -41,7 +41,7 @@ export function ShelfPanel({ knowledge, onLearning, onAccount, onClose, onToast 
       <section className={styles.treePane} aria-label="个人知识树">
         <div className={styles.treeHeading}>
           <div className={styles.treeTitle}>
-            <h2>{selectedTree?.title || '我的知识树'}</h2>
+            {selectedTree && <h2>{selectedTree.title}</h2>}
             <span>{exploredCount} 个节点已点亮</span>
           </div>
           <div className={styles.treeControls}>
