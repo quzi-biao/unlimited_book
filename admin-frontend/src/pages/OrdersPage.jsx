@@ -185,7 +185,7 @@ export default function OrdersPage() {
         open={channelModalVisible}
         onOk={submitChannelChange}
         onCancel={() => setChannelModalVisible(false)}
-        destroyOnClose
+        destroyOnHidden
       >
         <div style={{ padding: '20px 0' }}>
           <span>选择归属渠道：</span>

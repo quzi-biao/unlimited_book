@@ -84,7 +84,7 @@ export default function SettlementsPage() {
       <Card>
         <Table rowKey="id" columns={columns} dataSource={settlements} pagination={false} size="small" scroll={{ x: 760 }} />
       </Card>
-      <Modal title="生成结算草稿" open={open} onCancel={() => { setOpen(false); form.resetFields(); }} onOk={create} destroyOnClose>
+      <Modal title="生成结算草稿" open={open} onCancel={() => { setOpen(false); form.resetFields(); }} onOk={create} destroyOnHidden>
         <Form form={form} layout="vertical">
           <Form.Item name="channelId" label="渠道" rules={[{ required: true, message: '请选择渠道' }]}>
             <Select options={channels.map((c) => ({ value: c.id, label: c.name }))} />

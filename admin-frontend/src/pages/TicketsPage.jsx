@@ -123,7 +123,7 @@ export default function TicketsPage() {
         <Table rowKey="id" columns={columns} dataSource={tickets} loading={loading} pagination={false} size="small" scroll={{ x: 900 }} />
       </Card>
 
-      <Modal title="新建工单" open={open} onCancel={() => setOpen(false)} onOk={createTicket} destroyOnClose>
+      <Modal title="新建工单" open={open} onCancel={() => setOpen(false)} onOk={createTicket} destroyOnHidden>
         <Form form={form} layout="vertical" initialValues={{ type: 'feedback', priority: 'medium' }}>
           <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入标题' }]}><Input /></Form.Item>
           <Form.Item name="type" label="类型"><Select options={[{ value: 'device', label: '设备故障' }, { value: 'payment', label: '支付退款' }, { value: 'refund', label: '退款' }, { value: 'feedback', label: '意见反馈' }, { value: 'other', label: '其他' }]} /></Form.Item>

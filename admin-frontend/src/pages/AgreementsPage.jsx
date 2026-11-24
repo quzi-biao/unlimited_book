@@ -138,7 +138,7 @@ export default function AgreementsPage() {
         onCancel={() => setOpen(false)}
         onOk={handleSave}
         width={800}
-        destroyOnClose
+      destroyOnHidden
       >
         <Form form={form} layout="vertical">
           <Form.Item name="title" label="内容标题 (展示名称)" rules={[{ required: true, message: '请输入标题' }]}>
@@ -164,7 +164,7 @@ export default function AgreementsPage() {
         onCancel={() => setViewingContent(null)}
         footer={null}
         width={800}
-        destroyOnClose
+      destroyOnHidden
       >
         <div style={{ maxHeight: '70vh', overflowY: 'auto' }} dangerouslySetInnerHTML={{ __html: viewingContent?.content || '' }} />
       </Modal>

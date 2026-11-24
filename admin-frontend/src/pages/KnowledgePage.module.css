@@ -161,6 +161,14 @@
   min-width: 0;
 }
 
+.detailHeading > div:last-child {
+  display: flex;
+  max-width: 100%;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .nodeContext {
   margin: 12px 0;
   color: #777f89;
@@ -172,6 +180,8 @@
   width: min(100%, 640px);
   max-height: 360px;
   object-fit: contain;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   background: #f4f6f7;
 }
 
@@ -391,5 +401,6 @@
   .detailHeading > div:last-child {
     width: 100%;
     flex-wrap: wrap;
+    justify-content: flex-start;
   }
 }

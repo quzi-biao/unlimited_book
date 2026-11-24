@@ -21,7 +21,7 @@ export function useBrowseTopic({ state, dispatch, setCurrentPage, setQueueOpen, 
       dispatch({ type: 'SET_SHELF', open: false });
       dispatch({ type: 'SET_PAGETREE', open: false });
       setQueueOpen(false);
-      addToast({ type: 'info', message: `已打开书架中的「${result.bookTitle || query}」，未重复生成` });
+      addToast({ type: 'info', message: `已打开已有内容「${result.bookTitle || query}」，未重复生成` });
     };
     try {
       const { existing, prepared } = await findTopicBook(query);
