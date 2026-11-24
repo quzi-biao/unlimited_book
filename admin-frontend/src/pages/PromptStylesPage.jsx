@@ -66,7 +66,7 @@ export default function PromptStylesPage() {
 
   return (
     <div style={{ padding: 24, background: '#fff', borderRadius: 8 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
         <h2>提示词风格管理</h2>
         <Button
           type="primary"
@@ -82,6 +82,7 @@ export default function PromptStylesPage() {
         dataSource={styles}
         loading={loading}
         pagination={false}
+        scroll={{ x: 720 }}
       />
     </div>
   );

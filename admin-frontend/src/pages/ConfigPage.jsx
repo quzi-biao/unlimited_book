@@ -153,7 +153,7 @@ export default function ConfigPage() {
 
   const columns = [
     {
-      title: '配置项', key: 'label', width: 200,
+      title: '配置项', key: 'label', width: 170,
       render: (_, c) => {
         const meta = CONFIG_META[c.key];
         return (
@@ -165,20 +165,22 @@ export default function ConfigPage() {
       },
     },
     {
-      title: '当前值', key: 'value', width: 220,
+      title: '当前值', key: 'value', width: 170,
       render: (_, c) => (
         <EditCell configKey={c.key} value={c.value} onSaved={load} />
       ),
     },
     {
       title: '描述', dataIndex: 'desc', key: 'desc',
+      width: 360,
+      responsive: ['md'],
       render: (v) => <Text type="secondary" style={{ fontSize: 12 }}>{v || '—'}</Text>,
     },
   ];
 
   return (
     <div>
-      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <Title level={4} style={{ margin: 0 }}>全局配置</Title>
           <Text type="secondary" style={{ fontSize: 13 }}>点数消耗规则、成本定价等系统参数，修改后立即生效</Text>
@@ -201,6 +203,7 @@ export default function ConfigPage() {
             size="small"
             pagination={false}
             showHeader={false}
+            scroll={{ x: 'max-content' }}
           />
         </Card>
       ))}
@@ -214,6 +217,7 @@ export default function ConfigPage() {
             size="small"
             pagination={false}
             showHeader={false}
+            scroll={{ x: 'max-content' }}
           />
         </Card>
       )}

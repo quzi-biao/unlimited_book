@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Statistic, Row, Col, Table, Button, Modal, Form, DatePicker, Input, message } from 'antd';
 import { ArrowLeftOutlined, PlusOutlined } from '@ant-design/icons';
@@ -18,11 +18,7 @@ export default function ChannelDetailPage() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    fetchData();
-  }, [id]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [chRes, setRes] = await Promise.all([
@@ -36,7 +32,11 @@ export default function ChannelDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handlePeriodChange = async (dates) => {
     if (!dates || !dates[0] || !dates[1]) {
@@ -92,24 +92,24 @@ export default function ChannelDetailPage() {
     { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', render: (val) => dayjs(val).format('YYYY-MM-DD HH:mm') }
   ];
 
-  if (!channel) return <div style={{ padding: 24 }}>加载中...</div>;
+  if (!channel) return <div>加载中...</div>;
 
   return (
-    <div style={{ padding: 24 }}>
-      <div style={{ marginBottom: 16 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/admin/channels')} style={{ marginRight: 16 }}>
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/admin/channels')}>
           返回渠道列表
         </Button>
-        <span style={{ fontSize: 20, fontWeight: 'bold' }}>{channel.name} 详情</span>
+        <span style={{ fontSize: 20, fontWeight: 'bold', overflowWrap: 'anywhere' }}>{channel.name} 详情</span>
       </div>
 
       <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={6}>
+        <Col xs={24} sm={8}>
           <Card>
             <Statistic title="卖出设备数（多页设备）" value={channel.validDeviceCount} />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={24} sm={8}>
           <Card>
             <Statistic 
               title="待结算分润 (元)" 
@@ -118,7 +118,7 @@ export default function ChannelDetailPage() {
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={24} sm={8}>
           <Card>
             <Statistic 
               title="已结算分润 (元)" 
@@ -138,6 +138,7 @@ export default function ChannelDetailPage() {
           columns={columns}
           rowKey="id"
           loading={loading}
+          scroll={{ x: 860 }}
         />
       </Card>
 
@@ -181,6 +182,7 @@ export default function ChannelDetailPage() {
                 { title: '订单金额', render: (_, r) => `¥${(r.amount / 100).toFixed(2)}`, width: 100 },
                 { title: '支付时间', render: (_, r) => dayjs(r.paidAt).format('YYYY-MM-DD HH:mm'), width: 150 }
               ]}
+              scroll={{ x: 520 }}
             />
           </div>
         )}

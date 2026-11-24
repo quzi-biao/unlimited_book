@@ -185,6 +185,7 @@ export default function VersionsPage() {
           loading={loading}
           size="small"
           pagination={false}
+          scroll={{ x: 960 }}
         />
       </Card>
       <CreateModal open={createOpen} onClose={() => setCreateOpen(false)} onCreated={() => { setCreateOpen(false); load(); }} />

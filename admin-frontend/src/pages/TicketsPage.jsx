@@ -51,7 +51,7 @@ export default function TicketsPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
         <div>
           <Text type="secondary">先支撑设备故障、支付退款和意见反馈三类工单。</Text>
         </div>
@@ -59,7 +59,7 @@ export default function TicketsPage() {
       </div>
 
       <Card>
-        <Table rowKey="id" columns={columns} dataSource={tickets} pagination={false} size="small" />
+        <Table rowKey="id" columns={columns} dataSource={tickets} pagination={false} size="small" scroll={{ x: 900 }} />
       </Card>
 
       <Modal title="新建工单" open={open} onCancel={() => setOpen(false)} onOk={createTicket} destroyOnClose>

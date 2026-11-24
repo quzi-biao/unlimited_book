@@ -94,6 +94,7 @@ function CategoryTopicsModal({ categoryId, categoryName, open, onClose, onRefres
         size="small"
         pagination={{ pageSize: 10 }}
         loading={loading}
+        scroll={{ x: 460 }}
       />
     </Modal>
   );
@@ -236,6 +237,7 @@ export default function TopicCategoriesPage() {
         size="middle"
         pagination={false}
         loading={loading}
+        scroll={{ x: 720 }}
       />
 
       <CategoryTopicsModal

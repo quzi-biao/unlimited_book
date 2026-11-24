@@ -1,0 +1,53 @@
+.toolbar {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.search {
+  width: 280px;
+  min-width: 0;
+}
+
+.category {
+  width: 130px;
+  min-width: 0;
+}
+
+.cached {
+  width: 110px;
+  min-width: 0;
+}
+
+.categoryManagement {
+  margin-left: auto;
+}
+
+@media (max-width: 600px) {
+  .toolbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .search {
+    width: 100%;
+    grid-column: 1 / -1;
+  }
+
+  .category,
+  .cached,
+  .refresh,
+  .add {
+    width: 100%;
+  }
+
+  .categoryManagement {
+    grid-column: 1 / -1;
+    justify-self: start;
+    margin-left: 0;
+  }
+}

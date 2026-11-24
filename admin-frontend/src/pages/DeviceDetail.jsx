@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card, Descriptions, Statistic, Table, Tabs, Button, Tag, Select,
@@ -8,7 +8,7 @@ import { ArrowLeftOutlined, EditOutlined, AppstoreOutlined } from '@ant-design/i
 import { adminApi } from '../api';
 import dayjs from 'dayjs';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 function fmtDur(s) {
   if (!s) return '0s';
@@ -21,7 +21,7 @@ function fmtDur(s) {
 export default function DeviceDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { message, modal } = App.useApp();
+  const { message } = App.useApp();
   const [device, setDevice] = useState(null);
   const [stats, setStats] = useState(null);
   const [points, setPoints] = useState({ total: 0, ledger: [], balance: 0 });
@@ -33,7 +33,7 @@ export default function DeviceDetail() {
   const [selVersion, setSelVersion] = useState(null);
   const [form] = Form.useForm();
 
-  const loadAll = async () => {
+  const loadAll = useCallback(async () => {
     try {
       const [dRes, sRes, pRes, vRes] = await Promise.all([
         adminApi.devices.get(id),
@@ -48,9 +48,9 @@ export default function DeviceDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  useEffect(() => { loadAll(); }, [id]);
+  useEffect(() => { loadAll(); }, [loadAll]);
 
   // ── 手动调整点数 ──
   const handleGrant = async (values) => {
@@ -98,9 +98,9 @@ export default function DeviceDetail() {
   ];
 
   const sessionColumns = [
-    { title: '开始时间', dataIndex: 'startAt', key: 'startAt', render: v => dayjs(v).format('MM-DD HH:mm:ss') },
-    { title: '结束时间', dataIndex: 'endAt', key: 'endAt', render: v => v ? dayjs(v).format('MM-DD HH:mm:ss') : <Tag color="success">进行中</Tag> },
-    { title: '时长', dataIndex: 'durationSeconds', key: 'dur', render: v => fmtDur(v) },
+    { title: '开始时间', dataIndex: 'startAt', key: 'startAt', width: 180, render: v => dayjs(v).format('MM-DD HH:mm:ss') },
+    { title: '结束时间', dataIndex: 'endAt', key: 'endAt', width: 180, render: v => v ? dayjs(v).format('MM-DD HH:mm:ss') : <Tag color="success">进行中</Tag> },
+    { title: '时长', dataIndex: 'durationSeconds', key: 'dur', width: 100, render: v => fmtDur(v) },
   ];
 
   const tabItems = [
@@ -140,21 +140,21 @@ export default function DeviceDetail() {
             <Text>余额：<strong style={{ color: '#4f46e5' }}>{points.balance}</strong> 点</Text>
             <Button type="primary" size="small" icon={<EditOutlined />} onClick={() => setGrantOpen(true)}>手动调整</Button>
           </div>
-          <Table rowKey="id" columns={pointsColumns} dataSource={points.ledger} size="small" pagination={false} />
+          <Table rowKey="id" columns={pointsColumns} dataSource={points.ledger} size="small" pagination={false} scroll={{ x: 550 }} />
         </div>
       ),
     },
     {
       key: 'sessions', label: '会话记录',
       children: (
-        <Table rowKey={(_, i) => i} columns={sessionColumns} dataSource={stats?.recentSessions || []} size="small" pagination={false} />
+        <Table rowKey={(_, i) => i} columns={sessionColumns} dataSource={stats?.recentSessions || []} size="small" pagination={false} scroll={{ x: 460 }} />
       ),
     },
   ];
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
         <Button
           shape="circle"
           icon={<ArrowLeftOutlined />}
@@ -162,7 +162,7 @@ export default function DeviceDetail() {
           style={{ width: 36, height: 36, minWidth: 36, fontSize: 16 }}
         />
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, minWidth: 0 }}>
             <span className="device-code" style={{ fontSize: 14, fontWeight: 600 }}>{device.deviceCode?.slice(0, 20)}…</span>
             {device.online ? <Tag color="success">在线</Tag> : <Tag color="default">离线</Tag>}
           </div>

@@ -102,7 +102,7 @@ export default function AgreementsPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
         <Title level={4} style={{ margin: 0 }}>内容管理</Title>
         <Button
           type="primary"
@@ -124,6 +124,7 @@ export default function AgreementsPage() {
           columns={columns}
           dataSource={agreements}
           pagination={false}
+          scroll={{ x: 760 }}
         />
       </Card>
 

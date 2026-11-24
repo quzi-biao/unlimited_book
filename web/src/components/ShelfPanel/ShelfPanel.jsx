@@ -26,7 +26,7 @@ export function ShelfPanel({ knowledge, onLearning, onAccount, onClose, onToast 
     <aside className={`knowledge-app shelf-dialog shelf-integrated ${styles.panel} glass`}
       role="dialog" aria-modal="true" aria-label="知识树">
       <header className={styles.header}>
-        <h2 className={styles.drawerTitle}>我的知识树</h2>
+        <h2 className={styles.drawerTitle}>知识树</h2>
         <div className={styles.headerActions}>
           {onLearning && <button type="button" className={styles.utilityButton} aria-label="学习足迹" title="学习足迹" onClick={onLearning}>
             <span className={styles.utilityFullLabel}>学习足迹</span><span className={styles.utilityCompactLabel}>足迹</span>

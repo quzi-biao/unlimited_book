@@ -232,7 +232,7 @@ export default function PlansPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <Title level={4} style={{ margin: 0 }}>
             <ShoppingOutlined style={{ marginRight: 8 }} />套餐管理
@@ -257,6 +257,7 @@ export default function PlansPage() {
         loading={loading}
         size="middle"
         pagination={false}
+        scroll={{ x: 960 }}
       />
 
       <PlanModal

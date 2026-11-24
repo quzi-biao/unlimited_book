@@ -38,7 +38,7 @@ export default function SettlementsPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
         <div>
           <Title level={4} style={{ margin: 0 }}>结算报表</Title>
           <Text type="secondary">先生成渠道分润草稿，后续可继续加人工审核和打款状态。</Text>
@@ -46,7 +46,7 @@ export default function SettlementsPage() {
         <Button type="primary" onClick={() => setOpen(true)}>生成结算草稿</Button>
       </div>
       <Card>
-        <Table rowKey="id" columns={columns} dataSource={settlements} pagination={false} size="small" />
+        <Table rowKey="id" columns={columns} dataSource={settlements} pagination={false} size="small" scroll={{ x: 760 }} />
       </Card>
       <Modal title="生成结算草稿" open={open} onCancel={() => setOpen(false)} onOk={create} destroyOnClose>
         <Form form={form} layout="vertical">

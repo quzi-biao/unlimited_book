@@ -126,12 +126,17 @@ export default function VoicesPage() {
       title: '音色名称',
       dataIndex: 'voiceName',
       key: 'voiceName',
+      width: 120,
+      ellipsis: true,
       render: (name, r) => name || <span style={{ color: '#999', fontSize: 12 }}>{r.voiceId}</span>,
     },
     {
       title: 'Voice ID',
       dataIndex: 'voiceId',
       key: 'voiceId',
+      width: 220,
+      ellipsis: true,
+      responsive: ['md'],
       render: (v) => <span style={{ fontSize: 12, color: '#666', fontFamily: 'monospace' }}>{v}</span>,
     },
     {
@@ -139,6 +144,7 @@ export default function VoicesPage() {
       dataIndex: 'voiceType',
       key: 'voiceType',
       width: 100,
+      responsive: ['md'],
       render: (t) => {
         const map = TYPE_MAP[t] || { label: t, color: 'default' };
         return <Tag color={map.color}>{map.label}</Tag>;
@@ -148,14 +154,17 @@ export default function VoicesPage() {
       title: '描述',
       dataIndex: 'description',
       key: 'description',
+      width: 220,
       ellipsis: true,
+      responsive: ['md'],
       render: (d) => d || '-',
     },
     {
       title: '启用',
       dataIndex: 'enabled',
       key: 'enabled',
-      width: 80,
+      width: 72,
+      fixed: 'right',
       render: (enabled, record) => {
         const isDefault = record.voiceId === 'Chinese (Mandarin)_Lyrical_Voice';
         return (
@@ -173,7 +182,8 @@ export default function VoicesPage() {
     {
       title: '操作',
       key: 'actions',
-      width: 100,
+      width: 90,
+      fixed: 'right',
       render: (_, record) => {
         const state = previewState[record.id];
         const isLoading = state === 'loading';
@@ -198,8 +208,8 @@ export default function VoicesPage() {
   const enabledCount = voices.filter((v) => v.enabled).length;
 
   return (
-    <div style={{ padding: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
         <Title level={4} style={{ margin: 0 }}>
           音色管理
           <Badge count={enabledCount} style={{ marginLeft: 8, backgroundColor: '#52c41a' }} title="已启用数量" />
@@ -221,6 +231,7 @@ export default function VoicesPage() {
         rowKey="id"
         loading={loading}
         size="small"
+        scroll={{ x: 'max-content' }}
         pagination={{ pageSize: 20, showSizeChanger: false }}
         rowClassName={(r) => r.enabled ? '' : 'row-disabled'}
       />

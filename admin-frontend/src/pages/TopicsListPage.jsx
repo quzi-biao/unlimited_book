@@ -2,15 +2,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Table, Input, Select, Button, Tag, Space, Typography,
-  Tooltip, Card, App, Modal, Image, Form, Drawer, Switch, Popconfirm, InputNumber
+  Tooltip, Card, App, Modal, Image, Form
 } from 'antd';
 import {
   SearchOutlined, ReloadOutlined, DeleteOutlined,
   PlusOutlined, CheckCircleFilled, MinusCircleOutlined, EyeOutlined, AppstoreOutlined
 } from '@ant-design/icons';
 import { adminApi } from '../api';
+import styles from './TopicsListPage.module.css';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 const { Option } = Select;
 
 /**
@@ -192,44 +193,46 @@ export default function TopicsListPage() {
       </Modal>
 
       <Card>
-        <Space style={{ marginBottom: 16, justifyContent: 'space-between', width: '100%' }}>
-          <Space wrap>
-            <Input.Search
-              placeholder="搜索话题名称…"
-              allowClear style={{ width: 280 }}
-              enterButton={<SearchOutlined />}
-              onSearch={v => { setSearch(v); setPage(1); }}
-            />
-            <Select
-              placeholder="全部分类" allowClear style={{ width: 130 }}
-              onChange={v => { setCategory(v || ''); setPage(1); }}
-            >
-              {data.categories.map(c => <Option key={c.id} value={c.id}>{c.name}</Option>)}
-            </Select>
-            <Select
-              placeholder="缓存状态" allowClear style={{ width: 110 }}
-              onChange={v => { setCached(v || ''); setPage(1); }}
-            >
-              <Option value="true">已缓存</Option>
-              <Option value="false">未缓存</Option>
-            </Select>
-            <Button icon={<ReloadOutlined />} onClick={load}>刷新</Button>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setAddOpen(true)}
-            >
-              新增话题
-            </Button>
-          </Space>
-
-          <Button 
-            icon={<AppstoreOutlined />} 
+        <div className={styles.toolbar}>
+          <Input.Search
+            className={styles.search}
+            placeholder="搜索话题名称…"
+            allowClear
+            enterButton={<SearchOutlined />}
+            onSearch={v => { setSearch(v); setPage(1); }}
+          />
+          <Select
+            className={styles.category}
+            placeholder="全部分类" allowClear
+            onChange={v => { setCategory(v || ''); setPage(1); }}
+          >
+            {data.categories.map(c => <Option key={c.id} value={c.id}>{c.name}</Option>)}
+          </Select>
+          <Select
+            className={styles.cached}
+            placeholder="缓存状态" allowClear
+            onChange={v => { setCached(v || ''); setPage(1); }}
+          >
+            <Option value="true">已缓存</Option>
+            <Option value="false">未缓存</Option>
+          </Select>
+          <Button className={styles.refresh} icon={<ReloadOutlined />} onClick={load}>刷新</Button>
+          <Button
+            className={styles.add}
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setAddOpen(true)}
+          >
+            新增话题
+          </Button>
+          <Button
+            className={styles.categoryManagement}
+            icon={<AppstoreOutlined />}
             onClick={() => navigate('/admin/topic-categories')}
           >
             分类管理
           </Button>
-        </Space>
+        </div>
 
         <Table
           rowKey="id"
