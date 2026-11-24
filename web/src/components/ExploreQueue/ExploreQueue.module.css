@@ -64,7 +64,7 @@
 
 .pillLabel {
   font-size: 13px;
-  color: var(--text, #c7d2fe);
+  color: var(--text, var(--color-gold));
 }
 .pillCount {
   font-size: 12px;

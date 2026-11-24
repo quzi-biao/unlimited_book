@@ -21,7 +21,7 @@
 
 /* ── Bold / Italic ── */
 .strong { font-weight: 700; color: #e2e8f0; }
-.em     { font-style: italic; color: #a5b4fc; }
+.em     { font-style: italic; color: var(--color-gold); }
 
 /* ── Lists ── */
 .ul, .ol {
@@ -32,14 +32,14 @@
   margin: 2px 0;
   color: rgba(255, 255, 255, 0.8);
 }
-.li::marker { color: #818cf8; }
+.li::marker { color: var(--color-gold); }
 
 /* ── Blockquote ── */
 .blockquote {
   margin: 6px 0;
   padding: 6px 12px;
-  border-left: 3px solid rgba(129, 140, 248, 0.5);
-  background: rgba(99, 102, 241, 0.08);
+  border-left: 3px solid rgba(240, 192, 96, 0.55);
+  background: rgba(240, 192, 96, 0.06);
   border-radius: 0 6px 6px 0;
   color: rgba(255, 255, 255, 0.7);
   font-style: italic;
@@ -49,8 +49,8 @@
 .inlineCode {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 12px;
-  background: rgba(99, 102, 241, 0.15);
-  color: #a5b4fc;
+  background: rgba(240, 192, 96, 0.12);
+  color: var(--color-gold);
   padding: 1px 5px;
   border-radius: 4px;
 }
@@ -60,7 +60,7 @@
   padding: 10px 14px;
   overflow-x: auto;
   margin: 6px 0;
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  border: 1px solid var(--color-border);
 }
 .pre code {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;

@@ -9,7 +9,7 @@
   position: absolute;
   pointer-events: none;
   background: transparent;
-  border: 1.5px solid rgba(99, 102, 241, 0.6);   /* RegionBorder: 0x996366F1 */
+  border: 1.5px solid rgba(240, 192, 96, 0.72);
   border-radius: 6px;
   box-sizing: border-box;
   animation: fadeInHighlight 0.2s ease;
@@ -37,7 +37,7 @@
   height: 14px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.9);    /* DotBg: 0xE6FFFFFF */
-  border: 2px solid rgba(99, 102, 241, 0.7); /* DotBorder: 0xB36366F1 */
+  border: 2px solid rgba(240, 192, 96, 0.8);
   cursor: pointer;
   pointer-events: all;
   transform: translate(-50%, -50%);
@@ -51,11 +51,11 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 
-/* 激活 — DotActive: 0xFF6366F1 */
+/* 激活 */
 .dotActive {
-  background: #6366f1;
+  background: var(--color-gold);
   border-color: white;
-  box-shadow: 0 0 0 3px rgba(99,102,241,0.35);
+  box-shadow: 0 0 0 3px rgba(240,192,96,0.35);
 }
 
 /* TTS 播放中 — DotPlaying: 0xFF10B981 */

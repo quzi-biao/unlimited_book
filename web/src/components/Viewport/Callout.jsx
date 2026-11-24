@@ -27,7 +27,7 @@ export function Callout({ callout, imgRef, onClose, onExpand, onTabChange, onPla
   // 深入探索按钮样式（对应 Android deepBtn / deepBtnLoaded）
   const deepStyle = alreadyExplored
     ? { background: 'rgba(34,211,238,0.1)', borderColor: 'rgba(34,211,238,0.45)', color: '#67e8f9' }
-    : { background: 'rgba(99,102,241,0.12)', borderColor: 'rgba(99,102,241,0.4)', color: '#a5b4fc' };
+    : { background: 'var(--color-gold-glow)', borderColor: 'var(--color-border-hover)', color: 'var(--color-gold)' };
 
   // 播放按钮样式（对应 Android playBtn）
   const playBg     = isPlaying ? 'rgba(16,185,129,0.2)' : isPaused ? 'rgba(245,158,11,0.2)' : isTtsError ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.06)';
@@ -43,7 +43,7 @@ export function Callout({ callout, imgRef, onClose, onExpand, onTabChange, onPla
     >
       {/* Header */}
       <div className={styles.calloutHeader}>
-        <Icon name="lightbulb" size={14} color="#818cf8" />
+        <Icon name="lightbulb" size={14} color="var(--color-gold)" />
         {isMulti && !isPending ? (
           <div className={styles.calloutTabs}>
             {callout.annotations.map((_, idx) => (
