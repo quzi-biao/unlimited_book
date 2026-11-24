@@ -53,13 +53,16 @@ function VoiceTab({ onToast }) {
   const [current,  setCurrent]   = useState(null);
   const [loading,  setLoading]   = useState(true);
   const [saving,   setSaving]    = useState(null);
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     getVoices().then(({ voices: v, currentVoiceId }) => {
-      setVoices(v);
+      setVoices(Array.isArray(v) ? v : []);
       setCurrent(currentVoiceId);
-    }).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+      setError(false);
+    }).catch(() => setError(true)).finally(() => setLoading(false));
+  }, [attempt]);
 
   const handleSelect = async (voiceId) => {
     setSaving(voiceId);
@@ -74,14 +77,19 @@ function VoiceTab({ onToast }) {
     }
   };
 
-  if (loading) return <div className={styles.center}><LoadingSpinner /></div>;
+  if (loading) return <div className={styles.center}><LoadingSpinner text="正在加载音色…" /></div>;
+  if (error) return <ListState title="音色加载失败" onRetry={() => { setLoading(true); setAttempt(value => value + 1); }} />;
+  if (!voices.length) return <ListState title="暂无可用音色" />;
 
   return (
     <div className={styles.list}>
       {voices.map((v) => (
-        <div
+        <button
+          type="button"
           key={v.id}
           className={`${styles.item} ${current === v.voiceId ? styles.itemActive : ''}`}
+          aria-pressed={current === v.voiceId}
+          disabled={saving !== null}
           onClick={() => handleSelect(v.voiceId)}
         >
           <div className={styles.itemLeft}>
@@ -96,7 +104,7 @@ function VoiceTab({ onToast }) {
             {current === v.voiceId && saving !== v.voiceId && <Icon name="check" size={18} className={styles.checkmark} />}
 
           </div>
-        </div>
+        </button>
       ))}
     </div>
   );
@@ -108,13 +116,16 @@ function StyleTab({ onToast }) {
   const [current,  setCurrent]  = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [saving,   setSaving]   = useState(null);
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     getPromptStyles().then(({ styles: s, currentPromptStyleId }) => {
-      setStyles_(s);
+      setStyles_(Array.isArray(s) ? s : []);
       setCurrent(currentPromptStyleId);
-    }).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+      setError(false);
+    }).catch(() => setError(true)).finally(() => setLoading(false));
+  }, [attempt]);
 
   const handleSelect = async (id) => {
     setSaving(id);
@@ -129,14 +140,19 @@ function StyleTab({ onToast }) {
     }
   };
 
-  if (loading) return <div className={styles.center}><LoadingSpinner /></div>;
+  if (loading) return <div className={styles.center}><LoadingSpinner text="正在加载画风…" /></div>;
+  if (error) return <ListState title="画风加载失败" onRetry={() => { setLoading(true); setAttempt(value => value + 1); }} />;
+  if (!styles_.length) return <ListState title="暂无可用画风" />;
 
   return (
     <div className={styles.list}>
       {styles_.map((s) => (
-        <div
+        <button
+          type="button"
           key={s.id}
           className={`${styles.item} ${current === s.id ? styles.itemActive : ''}`}
+          aria-pressed={current === s.id}
+          disabled={saving !== null}
           onClick={() => handleSelect(s.id)}
         >
           <div className={styles.itemLeft}>
@@ -151,10 +167,18 @@ function StyleTab({ onToast }) {
             {current === s.id && saving !== s.id && <Icon name="check" size={18} className={styles.checkmark} />}
 
           </div>
-        </div>
+        </button>
       ))}
     </div>
   );
+}
+
+/** 音色与画风共用明确的失败和空列表反馈。 */
+function ListState({ title, onRetry }) {
+  return <div className={styles.listState} role={onRetry ? 'alert' : 'status'}>
+    <p>{title}</p>
+    {onRetry && <button type="button" className={styles.retryButton} onClick={onRetry}>重试</button>}
+  </div>;
 }
 
 /** 账户 Tab */

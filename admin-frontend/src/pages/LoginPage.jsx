@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Form, Input, Button, Alert } from 'antd';
 import { SafetyOutlined, UserOutlined, LockOutlined } from '@ant-design/icons';
 import { adminApi } from '../api';
+import styles from './LoginPage.module.css';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -26,31 +27,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh', padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#f5f7fa',
-    }}>
-      <Card style={{ width: 'min(380px, 100%)', boxShadow: '0 8px 28px rgba(15,23,42,0.08)', borderRadius: 8 }} styles={{ body: { padding: '32px 28px' } }}>
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <SafetyOutlined style={{ fontSize: 36, color: '#4f46e5', marginBottom: 10, display: 'block' }} />
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#262626' }}>无限之书</div>
-          <div style={{ color: '#8c8c8c', fontSize: 13, marginTop: 4 }}>后台管理系统</div>
+    <main className={styles.page}>
+      <Card className={styles.card} styles={{ body: { padding: '32px 28px' } }}>
+        <div className={styles.brand}>
+          <SafetyOutlined className={styles.logo} />
+          <div className={styles.brandName}>无限之书</div>
+          <div className={styles.brandSubtitle}>后台管理系统</div>
         </div>
 
-        {error && <Alert message={error} type="error" showIcon style={{ marginBottom: 16, borderRadius: 8 }} />}
+        {error && <Alert className={styles.error} message={error} type="error" showIcon />}
 
         <Form form={form} onFinish={onFinish} layout="vertical" size="large">
           <Form.Item name="username" label="用户名" rules={[{ required: true, message: '请输入用户名' }]}>
-            <Input prefix={<UserOutlined />} placeholder="admin" autoFocus />
+            <Input prefix={<UserOutlined />} placeholder="admin" autoComplete="username" autoFocus />
           </Form.Item>
           <Form.Item name="password" label="密码" rules={[{ required: true, message: '请输入密码' }]}>
-            <Input.Password prefix={<LockOutlined />} placeholder="••••••" />
+            <Input.Password prefix={<LockOutlined />} placeholder="••••••" autoComplete="current-password" />
           </Form.Item>
-          <Button type="primary" htmlType="submit" loading={loading} block style={{ marginTop: 8, height: 42 }}>
+          <Button className={styles.submit} type="primary" htmlType="submit" loading={loading} block>
             登 录
           </Button>
         </Form>
       </Card>
-    </div>
+    </main>
   );
 }
