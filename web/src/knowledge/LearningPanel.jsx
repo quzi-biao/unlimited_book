@@ -30,7 +30,7 @@ export function LearningPanel({ snapshot, onOpen, onClose, toast, selected }) {
       const result = await response.json(); if (!response.ok) throw new Error(result.error); setNearby(result);
     } catch(error) { toast(error.message); }
   }
-  return <section className="knowledge-panel" aria-label="学习足迹"><header><h2>走过的路与新的可能</h2><button onClick={onClose}>关闭</button></header>
+  return <section className="knowledge-panel learning-panel-content" aria-label="学习足迹"><header><h2>学习回顾</h2><button aria-label="返回知识树" onClick={onClose}>返回知识树</button></header>
     <section><h3>也许值得再想一想</h3><p>按上次回想安排，可以随时跳过。</p>{data?.due.length === 0 && <p>暂时没有到期的回想。</p>}<div className="neighbor-list">{data?.due.map(n => <button key={n.id} onClick={() => onOpen(n.assetKey)}>{n.asset.title}</button>)}</div></section>
     <section><h3>可能的连接，由你判断</h3><div className="suggestion-grid">{data?.suggestions.map(n => <button key={n.key} onClick={() => onOpen(n.key, n.treeId)}><strong>{n.title}</strong><small>{n.domain} · 暂定</small><span>{n.reason}</span></button>)}</div></section>
     {data && <Report report={data.report}/>}

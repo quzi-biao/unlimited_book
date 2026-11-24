@@ -18,4 +18,11 @@
 @media(max-width:600px){.knowledge-header{padding:14px 18px;gap:12px}.knowledge-header .brand{font-size:18px;white-space:nowrap}.knowledge-header nav{flex:0 0 100%;justify-content:space-between}.knowledge-header nav button{white-space:nowrap;padding:6px 12px}.knowledge-header .mode-selector span{display:none}.knowledge-app>main{padding:20px 18px}.knowledge-panel{padding:18px}.knowledge-map{min-height:350px}.map-scroll{max-height:55dvh}.knowledge-toast{width:max-content;max-width:88vw}}
 
 .report-notice{margin:0 0 18px;display:flex;flex-wrap:wrap;gap:10px}.report-notice>.knowledge-panel{flex-basis:100%;margin-top:8px}.learning-nudge{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px;color:#b8d9ba}
+.shelf-dialog .knowledge-panel.learning-panel-content{max-width:none;margin:0;padding:16px 4px 0;border:0;border-radius:0;background:transparent}
+.shelf-dialog .learning-panel-content>header{gap:12px;padding-bottom:14px;margin-bottom:0}
+.shelf-dialog .learning-panel-content>header h2{min-width:0;margin:0;font-size:18px;line-height:1.4}
+.shelf-dialog .learning-panel-content>header button{flex:0 0 auto;white-space:nowrap}
+.shelf-dialog .learning-panel-content>section:not(.observation){padding:18px 0;margin-top:12px}
+.shelf-dialog .learning-panel-content .neighbor-list:empty{display:none}
+.shelf-dialog .learning-panel-content select{margin-left:0}
 .knowledge-app .delete-node-button{color:#ffb4b4;border-color:#8d4d59;background:#402431}.node-delete-confirm{flex-basis:100%;padding:18px;border:1px solid #8d4d59;border-radius:12px}.node-delete-confirm fieldset{margin:12px 0;padding:12px;border:1px solid #566070;border-radius:8px}.node-delete-confirm input[type=radio]{width:auto!important;margin-right:8px}.node-delete-confirm [role=alert]{color:#ffb4b4}
