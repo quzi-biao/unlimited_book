@@ -62,9 +62,12 @@ export default function SettlementsPage() {
     { title: '渠道', dataIndex: ['channel', 'name'], key: 'channel' },
     { title: '区间', key: 'range', render: (_, r) => `${String(r.periodStart).slice(0, 10)} ~ ${String(r.periodEnd).slice(0, 10)}` },
     { title: '订单数', dataIndex: 'hardwareOrderCount', key: 'hardwareOrderCount' },
-    { title: '渠道分润', dataIndex: 'totalCommissionFen', key: 'totalCommissionFen', render: (v) => `¥${(v / 100).toFixed(2)}` },
     {
-      title: '状态', dataIndex: 'status', key: 'status',
+      title: '渠道分润', dataIndex: 'totalCommissionFen', key: 'totalCommissionFen', responsive: ['sm'],
+      render: (v) => `¥${(v / 100).toFixed(2)}`,
+    },
+    {
+      title: '状态', dataIndex: 'status', key: 'status', responsive: ['sm'],
       render: v => {
         const status = settlementStatuses[v] || { label: v || '未知', color: 'default' };
         return <Tag color={status.color}>{status.label}</Tag>;
@@ -82,7 +85,7 @@ export default function SettlementsPage() {
         <Button type="primary" onClick={() => setOpen(true)}>生成结算草稿</Button>
       </div>
       <Card>
-        <Table rowKey="id" columns={columns} dataSource={settlements} pagination={false} size="small" scroll={{ x: 760 }} />
+        <Table rowKey="id" columns={columns} dataSource={settlements} pagination={false} size="small" scroll={{ x: 'max-content' }} />
       </Card>
       <Modal title="生成结算草稿" open={open} onCancel={() => { setOpen(false); form.resetFields(); }} onOk={create} destroyOnHidden>
         <Form form={form} layout="vertical">

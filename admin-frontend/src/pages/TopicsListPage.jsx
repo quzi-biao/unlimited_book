@@ -25,7 +25,9 @@ export default function TopicsListPage() {
   const [loading, setLoading]   = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [page, setPage]         = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const [pageSize, setPageSize] = useState(() => (
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 600px)').matches ? 20 : 50
+  ));
   const [search, setSearch]     = useState('');
   const [category, setCategory] = useState('');
   const [cached, setCached]     = useState('');
