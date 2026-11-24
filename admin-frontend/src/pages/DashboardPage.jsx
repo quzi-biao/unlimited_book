@@ -63,29 +63,29 @@ export default function DashboardPage() {
   };
 
   const orderColumns = [
-    { title: '订单', dataIndex: 'id', key: 'id', width: 380, ellipsis: true },
-    { title: '金额', dataIndex: 'amount', key: 'amount', width: 180, ellipsis: true, render: (v) => fenToYuan(v) },
+    { title: '订单号', dataIndex: 'id', key: 'id', width: 136, ellipsis: true },
+    { title: '金额', dataIndex: 'amount', key: 'amount', width: 80, render: (v) => fenToYuan(v) },
     {
-      title: '状态', dataIndex: 'status', key: 'status', width: 150, ellipsis: true, render: (v) => {
+      title: '状态', dataIndex: 'status', key: 'status', width: 100, render: (v) => {
         const s = orderStatusMap[v] || { label: v, color: 'default' };
         return <Tag color={s.color}>{s.label}</Tag>;
       }
     },
-    { title: '设备', key: 'device', ellipsis: true, render: (_, r) => r.device ? <Link to={`/admin/devices/${r.deviceId}`}>{r.device.deviceCode}</Link> : '—' },
-    { title: '渠道名称', key: 'channel', ellipsis: true, render: (_, r) => r.channel ? <Link to={`/admin/channels/${r.channelId}`}>{r.channel.name}</Link> : '—' },
+    { title: '设备', key: 'device', width: 150, responsive: ['lg'], ellipsis: true, render: (_, r) => r.device ? <Link to={`/admin/devices/${r.deviceId}`}>{r.device.deviceCode}</Link> : '—' },
+    { title: '渠道名称', key: 'channel', width: 140, responsive: ['lg'], ellipsis: true, render: (_, r) => r.channel ? <Link to={`/admin/channels/${r.channelId}`}>{r.channel.name}</Link> : '—' },
   ];
 
   const ticketColumns = [
-    { title: '工单', dataIndex: 'title', key: 'title', ellipsis: true },
-    { title: '类型', dataIndex: 'type', key: 'type', render: (v) => ticketTypeMap[v] || v },
+    { title: '工单', dataIndex: 'title', key: 'title', width: 128, ellipsis: true },
+    { title: '类型', dataIndex: 'type', key: 'type', width: 80, render: (v) => ticketTypeMap[v] || v },
     {
-      title: '状态', dataIndex: 'status', key: 'status', render: (v) => {
+      title: '状态', dataIndex: 'status', key: 'status', width: 100, render: (v) => {
         const s = ticketStatusMap[v] || { label: v, color: 'default' };
         return <Tag color={s.color}>{s.label}</Tag>;
       }
     },
-    { title: '设备', key: 'device', render: (_, r) => r.device ? <Link to={`/admin/devices/${r.deviceId}`}>{r.device.deviceCode}</Link> : '—' },
-    { title: '渠道名称', key: 'channel', render: (_, r) => r.channel ? <Link to={`/admin/channels/${r.channelId}`}>{r.channel.name}</Link> : '—' },
+    { title: '设备', key: 'device', width: 150, responsive: ['lg'], ellipsis: true, render: (_, r) => r.device ? <Link to={`/admin/devices/${r.deviceId}`}>{r.device.deviceCode}</Link> : '—' },
+    { title: '渠道名称', key: 'channel', width: 140, responsive: ['lg'], ellipsis: true, render: (_, r) => r.channel ? <Link to={`/admin/channels/${r.channelId}`}>{r.channel.name}</Link> : '—' },
   ];
 
   return (
@@ -102,11 +102,11 @@ export default function DashboardPage() {
       </section>
 
       <Card title="最近订单" className={styles.tableCard}>
-        <Table rowKey="id" columns={orderColumns} dataSource={data.recentOrders} pagination={false} size="small" scroll={{ x: 980 }} />
+        <Table rowKey="id" columns={orderColumns} dataSource={data.recentOrders} pagination={false} size="small" scroll={{ x: 'max-content' }} />
       </Card>
 
       <Card title="最近工单" className={styles.tableCard}>
-        <Table rowKey="id" columns={ticketColumns} dataSource={data.recentTickets} pagination={false} size="small" scroll={{ x: 760 }} />
+        <Table rowKey="id" columns={ticketColumns} dataSource={data.recentTickets} pagination={false} size="small" scroll={{ x: 'max-content' }} />
       </Card>
     </div>
   );
