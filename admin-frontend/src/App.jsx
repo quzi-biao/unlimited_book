@@ -1,31 +1,44 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { ConfigProvider, Layout, Menu, Avatar, Dropdown, Button, App as AntApp } from 'antd';
+import { ConfigProvider, Layout, Menu, Avatar, Dropdown, Button, Spin, App as AntApp } from 'antd';
 import {
   MobileOutlined, SafetyOutlined, LogoutOutlined, DownOutlined, MenuOutlined,
   SettingOutlined, ShopOutlined
 } from '@ant-design/icons';
 import './index.css';
 import zhCN from 'antd/locale/zh_CN';
-import KnowledgePage from './pages/KnowledgePage';
-import LoginPage from './pages/LoginPage';
-import DeviceList from './pages/DeviceList';
-import DeviceDetail from './pages/DeviceDetail';
-import TopicsListPage from './pages/TopicsListPage';
-import TopicCategoriesPage from './pages/TopicCategoriesPage';
-import VersionsPage from './pages/VersionsPage';
-import ConfigPage from './pages/ConfigPage';
-import VoicesPage from './pages/VoicesPage';
-import PlansPage from './pages/PlansPage';
-import PromptStylesPage from './pages/PromptStylesPage';
-import PromptStyleEditPage from './pages/PromptStyleEditPage';
-import DashboardPage from './pages/DashboardPage';
-import ChannelsPage from './pages/ChannelsPage';
-import ChannelDetailPage from './pages/ChannelDetailPage';
-import TicketsPage from './pages/TicketsPage';
-import OrdersPage from './pages/OrdersPage';
-import AgreementsPage from './pages/AgreementsPage';
-import SettlementsPage from './pages/SettlementsPage';
+
+const KnowledgePage = lazy(() => import('./pages/KnowledgePage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const DeviceList = lazy(() => import('./pages/DeviceList'));
+const DeviceDetail = lazy(() => import('./pages/DeviceDetail'));
+const TopicsListPage = lazy(() => import('./pages/TopicsListPage'));
+const TopicCategoriesPage = lazy(() => import('./pages/TopicCategoriesPage'));
+const VersionsPage = lazy(() => import('./pages/VersionsPage'));
+const ConfigPage = lazy(() => import('./pages/ConfigPage'));
+const VoicesPage = lazy(() => import('./pages/VoicesPage'));
+const PlansPage = lazy(() => import('./pages/PlansPage'));
+const PromptStylesPage = lazy(() => import('./pages/PromptStylesPage'));
+const PromptStyleEditPage = lazy(() => import('./pages/PromptStyleEditPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const ChannelsPage = lazy(() => import('./pages/ChannelsPage'));
+const ChannelDetailPage = lazy(() => import('./pages/ChannelDetailPage'));
+const TicketsPage = lazy(() => import('./pages/TicketsPage'));
+const OrdersPage = lazy(() => import('./pages/OrdersPage'));
+const AgreementsPage = lazy(() => import('./pages/AgreementsPage'));
+const SettlementsPage = lazy(() => import('./pages/SettlementsPage'));
+
+function RouteLoading({ fullPage = false }) {
+  return (
+    <div
+      role="status"
+      aria-label="正在加载页面"
+      style={{ minHeight: fullPage ? '100vh' : 240, display: 'grid', placeItems: 'center' }}
+    >
+      <Spin size="large" />
+    </div>
+  );
+}
 
 const { Sider, Content } = Layout;
 
@@ -155,27 +168,29 @@ function AdminLayout() {
           </Dropdown>
         </div>
         <Content className="admin-content">
-          <Routes>
-            <Route path="knowledge" element={<KnowledgePage />} />
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="devices" element={<DeviceList />} />
-            <Route path="devices/:id" element={<DeviceDetail />} />
-            <Route path="topics-list" element={<TopicsListPage />} />
-            <Route path="topic-categories" element={<TopicCategoriesPage />} />
-            <Route path="versions" element={<VersionsPage />} />
-            <Route path="voices" element={<VoicesPage />} />
-            <Route path="prompt-styles" element={<PromptStylesPage />} />
-            <Route path="prompt-styles/:id" element={<PromptStyleEditPage />} />
-            <Route path="channels" element={<ChannelsPage />} />
-            <Route path="channels/:id" element={<ChannelDetailPage />} />
-            <Route path="orders" element={<OrdersPage />} />
-            <Route path="tickets" element={<TicketsPage />} />
-            <Route path="settlements" element={<SettlementsPage />} />
-            <Route path="plans" element={<PlansPage />} />
-            <Route path="agreements" element={<AgreementsPage />} />
-            <Route path="config" element={<ConfigPage />} />
-            <Route index element={<Navigate to="dashboard" replace />} />
-          </Routes>
+          <Suspense fallback={<RouteLoading />}>
+            <Routes>
+              <Route path="knowledge" element={<KnowledgePage />} />
+              <Route path="dashboard" element={<DashboardPage />} />
+              <Route path="devices" element={<DeviceList />} />
+              <Route path="devices/:id" element={<DeviceDetail />} />
+              <Route path="topics-list" element={<TopicsListPage />} />
+              <Route path="topic-categories" element={<TopicCategoriesPage />} />
+              <Route path="versions" element={<VersionsPage />} />
+              <Route path="voices" element={<VoicesPage />} />
+              <Route path="prompt-styles" element={<PromptStylesPage />} />
+              <Route path="prompt-styles/:id" element={<PromptStyleEditPage />} />
+              <Route path="channels" element={<ChannelsPage />} />
+              <Route path="channels/:id" element={<ChannelDetailPage />} />
+              <Route path="orders" element={<OrdersPage />} />
+              <Route path="tickets" element={<TicketsPage />} />
+              <Route path="settlements" element={<SettlementsPage />} />
+              <Route path="plans" element={<PlansPage />} />
+              <Route path="agreements" element={<AgreementsPage />} />
+              <Route path="config" element={<ConfigPage />} />
+              <Route index element={<Navigate to="dashboard" replace />} />
+            </Routes>
+          </Suspense>
         </Content>
       </Layout>
     </Layout>
@@ -187,11 +202,13 @@ export default function App() {
     <ConfigProvider locale={zhCN} theme={{ token: { colorPrimary: '#4f46e5', borderRadius: 8 } }}>
       <AntApp>
         <BrowserRouter>
-          <Routes>
-            <Route path="/admin/login" element={<LoginPage />} />
-            <Route path="/admin/*" element={<RequireAuth><AdminLayout /></RequireAuth>} />
-            <Route path="*" element={<Navigate to="/admin" replace />} />
-          </Routes>
+          <Suspense fallback={<RouteLoading fullPage />}>
+            <Routes>
+              <Route path="/admin/login" element={<LoginPage />} />
+              <Route path="/admin/*" element={<RequireAuth><AdminLayout /></RequireAuth>} />
+              <Route path="*" element={<Navigate to="/admin" replace />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </AntApp>
     </ConfigProvider>
