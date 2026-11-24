@@ -85,6 +85,7 @@
 }
 .emptyInner {
   text-align: center;
+  max-width: calc(100vw - 32px);
   animation: fadeIn 0.6s ease;
 }
 .emptyIcon {
@@ -107,6 +108,7 @@
   font-size: var(--text-base);
   color: var(--color-text-2);
   line-height: 1.7;
+  text-wrap: balance;
 }
 
 /* ── Callout（对应 Android AnnotationCallout.kt） ─────────────── */

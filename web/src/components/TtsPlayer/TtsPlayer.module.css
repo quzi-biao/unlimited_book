@@ -36,8 +36,8 @@
   border: 1px solid var(--color-border);
 }
 .roundBtnPaused {
-  background: linear-gradient(135deg, #6366f1, #818cf8);
-  color: #fff;
+  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dim));
+  color: var(--color-bg);
 }
 .roundBtnError {
   background: #ef4444;
@@ -50,12 +50,12 @@
   bottom: calc(100% + 24px);
   right: 0;
   pointer-events: all;
-  width: clamp(270px, 80vw, 360px);
-  background: rgba(18, 16, 30, 0.92);
+  width: min(360px, max(270px, 80vw));
+  background: rgba(14, 20, 37, 0.96);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 20px;
+  border: 1px solid var(--color-border-hover);
+  border-radius: var(--radius-lg);
   padding: 12px 10px 10px 18px;
   display: flex;
   align-items: center;
@@ -100,7 +100,7 @@
 }
 .titleText {
   font-size: 13px;
-  color: rgba(255,255,255,0.85);
+  color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -108,9 +108,9 @@
 }
 .annBadge {
   font-size: 10px;
-  color: #a78bfa;
-  background: rgba(167,139,250,0.15);
-  border: 1px solid rgba(167,139,250,0.35);
+  color: var(--color-gold);
+  background: var(--color-gold-glow);
+  border: 1px solid var(--color-border-hover);
   border-radius: 4px;
   padding: 1px 6px;
   flex-shrink: 0;
@@ -138,7 +138,7 @@
   left: 0;
   height: 4px;
   border-radius: 2px;
-  background: linear-gradient(90deg, #818cf8, #6366f1);
+  background: linear-gradient(90deg, var(--color-gold), var(--color-gold-dim));
   transition: width 0.2s linear;
 }
 .progressThumb {
@@ -161,9 +161,9 @@
 }
 .rateBtn {
   font-size: 11px;
-  color: rgba(255,255,255,0.5);
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.10);
+  color: var(--color-text-2);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 2px 8px;
   cursor: pointer;
@@ -173,7 +173,7 @@
 
 .timeText {
   font-size: 11px;
-  color: rgba(255,255,255,0.35);
+  color: var(--color-text-2);
 }
 
 /* ── 胶囊播放/暂停按钮 ─────────────────────────────────────── */
@@ -194,16 +194,16 @@
 
 .pillPlayBtnLoading {
   background: rgba(255,255,255,0.10);
-  color: #818cf8;
+  color: var(--color-gold);
   cursor: default;
 }
 .pillPlayBtnPlaying {
-  background: linear-gradient(135deg, #6366f1, #818cf8);
-  color: #fff;
+  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dim));
+  color: var(--color-bg);
 }
 .pillPlayBtnPaused {
-  background: linear-gradient(135deg, #4f46e5, #6366f1);
-  color: #fff;
+  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dim));
+  color: var(--color-bg);
 }
 
 /* loading spinner in pill */
@@ -211,8 +211,8 @@
   display: block;
   width: 22px;
   height: 22px;
-  border: 2.5px solid rgba(129,140,248,0.25);
-  border-top-color: #818cf8;
+  border: 2.5px solid rgba(240,192,96,0.25);
+  border-top-color: var(--color-gold);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -225,4 +225,11 @@
 .roundBtnUnavailable {
   opacity: 0.42;
   cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .pill {
+    width: min(360px, 80vw, calc(100vw - 24px));
+    right: calc(12px - 20vw);
+  }
 }
