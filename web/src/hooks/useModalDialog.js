@@ -3,7 +3,10 @@ import { useEffect, useRef } from 'react';
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /** Keep keyboard focus inside an open modal and return it to the opener. */
-export function useModalDialog(open, onClose, fallbackSelector = '[data-dialog-return-focus]') {
+export function useModalDialog(open, onClose, {
+  fallbackSelector = '[data-dialog-return-focus]',
+  initialFocusSelector,
+} = {}) {
   const dialogRef = useRef(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -12,7 +15,7 @@ export function useModalDialog(open, onClose, fallbackSelector = '[data-dialog-r
     if (!open) return undefined;
     const dialog = dialogRef.current;
     const previousFocus = document.activeElement;
-    const firstFocusable = dialog?.querySelector(FOCUSABLE);
+    const firstFocusable = dialog?.querySelector(initialFocusSelector || FOCUSABLE);
     (firstFocusable || dialog)?.focus();
 
     const handleKeyDown = event => {
@@ -47,7 +50,7 @@ export function useModalDialog(open, onClose, fallbackSelector = '[data-dialog-r
       if (previousFocus?.isConnected && previousFocus !== document.body && previousFocus !== document.documentElement) previousFocus.focus();
       else document.querySelector(fallbackSelector)?.focus();
     };
-  }, [open, fallbackSelector]);
+  }, [open, fallbackSelector, initialFocusSelector]);
 
   return dialogRef;
 }

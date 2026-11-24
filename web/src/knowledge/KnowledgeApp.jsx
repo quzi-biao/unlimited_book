@@ -14,12 +14,14 @@ import { AppStateProvider } from '../contexts/AppStateContext.jsx';
 import { AppLogo } from '../components/common/Icons.jsx';
 import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
 import appStyles from '../App.module.css';
+import { useModalDialog } from '../hooks/useModalDialog.js';
 import './knowledge.css';
 import './reader-integration.css';
 import { pruneJobs } from './deletions.js';
 import './node-workspace.css';
 
 const nodeViews={notes:'notes',explore:'explore','node-learning':'learning',correction:'correction',delete:'delete'};
+const sectionTitle = {tree:'知识树', learning:'学习足迹', account:'我的账号', notes:'笔记',explore:'深入探索','node-learning':'学习记录',correction:'内容核查',delete:'删除节点'};
 
 /** 全端共用的知识树入口；账号数据、队列与媒体均有本地持久副本。 */
 export default function KnowledgeApp() {
@@ -29,6 +31,12 @@ export default function KnowledgeApp() {
   const library = useKnowledge(!auth.loading && !auth.error, toast);
   const { snapshot, record } = library;
   const [selected, setSelected] = useState(null); const [panel, setPanel] = useState(null);
+  const closePanel = useCallback(() => setPanel(current => current === 'account' ? 'tree' : null), []);
+  const panelDialogRef = useModalDialog(
+    snapshot && sectionTitle[panel] && panel !== 'tree' ? panel : null,
+    closePanel,
+    { initialFocusSelector: '[data-dialog-initial-focus]' },
+  );
   const [jobs, setJobs] = useState([]);
   const running = useRef(new Set()); const profileId = snapshot?.profile.id;
   const activeProfile = useRef(profileId); activeProfile.current = profileId;
@@ -145,7 +153,6 @@ export default function KnowledgeApp() {
   const safe = profile.mode === 'safe';
   const deviceShelf = !!snapshot.deviceShelf && !safe;
   const preferences = readerPreferences(profile);
-  const sectionTitle = {tree:'知识树', learning:'学习足迹', account:'我的账号', notes:'笔记',explore:'深入探索','node-learning':'学习记录',correction:'内容核查',delete:'删除节点'};
   const workspace = {snapshot, node, safe, deviceShelf, preferences, openNode, explore, openPanel:setPanel,
     treeOpen:panel === 'tree', settings:library.settings, sync:library.sync, pending:library.pending,
     status:library.status, mediaStatus:library.mediaStatus,
@@ -155,9 +162,9 @@ export default function KnowledgeApp() {
   return <>
     <AppStateProvider key={profile.id + ':' + deviceShelf} deviceShelf={deviceShelf}
       initialShelfOpen={panel === 'tree'} openForTreePanel={panel === 'tree'}><App knowledge={workspace}/></AppStateProvider>
-    {sectionTitle[panel] && panel !== 'tree' && <div className="shelf-dialog-backdrop" onClick={()=>setPanel(null)} onKeyDown={e=>{if(e.key==='Escape')setPanel(null);}}>
-      <section className={`knowledge-app shelf-dialog${panel==='tree'?' knowledge-tree-dialog':''}${nodeViews[panel]?' node-task-dialog':''}`} aria-label={sectionTitle[panel]} role="dialog" aria-modal="true" onClick={e=>e.stopPropagation()}>
-        <header className="shelf-dialog-header"><h2>{sectionTitle[panel]}</h2><button autoFocus aria-label={panel==='account'?'返回知识树':'返回阅读'} onClick={()=>setPanel(panel==='account'?'tree':null)}>{panel==='account'?'返回知识树':'关闭'}</button></header>
+    {sectionTitle[panel] && panel !== 'tree' && <div className="shelf-dialog-backdrop" onClick={()=>setPanel(null)}>
+      <section ref={panelDialogRef} className={`knowledge-app shelf-dialog${panel==='tree'?' knowledge-tree-dialog':''}${nodeViews[panel]?' node-task-dialog':''}`} aria-label={sectionTitle[panel]} role="dialog" aria-modal="true" tabIndex={-1} onClick={e=>e.stopPropagation()}>
+        <header className="shelf-dialog-header"><h2>{sectionTitle[panel]}</h2><button data-dialog-initial-focus aria-label={panel==='account'?'返回知识树':'返回阅读'} onClick={()=>setPanel(panel==='account'?'tree':null)}>{panel==='account'?'返回知识树':'关闭'}</button></header>
         {nodeViews[panel]&&node&&<NodeWorkspace key={node.assetKey+':'+panel} view={nodeViews[panel]} node={node} nodes={snapshot.nodes} events={snapshot.events} mode={profile.mode} record={record} onExplore={explore} toast={toast} onClose={()=>setPanel(null)} onDelete={deleteNode}/>}
         {panel==='account' && <AccountPanel profile={profile} switchAccount={library.switchAccount} settings={library.settings} toast={toast}/>}
         {panel==='learning' && <><ReportNotice profile={profile}/><LearningPanel snapshot={snapshot} onOpen={openKey} onClose={()=>setPanel('tree')} toast={toast} selected={node?.assetKey}/></>}

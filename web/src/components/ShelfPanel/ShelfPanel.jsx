@@ -3,6 +3,7 @@ import { useAppState } from '../../contexts/AppStateContext.jsx';
 import { Icon } from '../common/Icons.jsx';
 import { LearningNudge } from '../../knowledge/LearningNudge.jsx';
 import { TreeMap } from '../../knowledge/TreeMap.jsx';
+import { useModalDialog } from '../../hooks/useModalDialog.js';
 import styles from './ShelfPanel.module.css';
 
 /** 目录入口直接展示个人知识树，不再呈现独立书架视图。 */
@@ -10,6 +11,7 @@ export function ShelfPanel({ knowledge, onLearning, onAccount, onClose, onToast 
   const { state, dispatch } = useAppState();
   const { snapshot } = knowledge;
   const profile = snapshot.profile;
+  const dialogRef = useModalDialog(state.shelfOpen, onClose, { initialFocusSelector: '[aria-label="返回阅读"]' });
 
   /** 选择节点后收起目录，再进入原阅读器。 */
   const selectNode = useCallback(node => {
@@ -23,10 +25,10 @@ export function ShelfPanel({ knowledge, onLearning, onAccount, onClose, onToast 
   const selectedTree = snapshot.trees.find(tree => tree.id === profile.selectedTreeId);
   return <>
     <div className={styles.backdrop} onClick={onClose} />
-    <aside className={`knowledge-app shelf-dialog shelf-integrated ${styles.panel} glass`}
-      role="dialog" aria-modal="true" aria-label="知识树">
+    <aside ref={dialogRef} className={`knowledge-app shelf-dialog shelf-integrated ${styles.panel} glass`}
+      role="dialog" aria-modal="true" aria-labelledby="knowledge-tree-dialog-title" tabIndex={-1}>
       <header className={styles.header}>
-        <h2 className={styles.drawerTitle}>知识树</h2>
+        <h2 id="knowledge-tree-dialog-title" className={styles.drawerTitle}>知识树</h2>
         <div className={styles.headerActions}>
           {onLearning && <button type="button" className={styles.utilityButton} aria-label="学习足迹" title="学习足迹" onClick={onLearning}>
             <span className={styles.utilityFullLabel}>学习足迹</span><span className={styles.utilityCompactLabel}>足迹</span>
