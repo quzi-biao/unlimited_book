@@ -5,7 +5,7 @@ import db from '../../server/src/config/db.js';
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const database=new URL(process.env.DATABASE_URL);
 assert(['localhost','127.0.0.1'].includes(database.hostname)&&database.pathname==='/knowledge');
-const base='http://127.0.0.1:5186',out='../.local-data/knowledge-verification/forest';
+const base=process.env.KNOWLEDGE_WEB_URL || 'http://127.0.0.1:5186',out='../.local-data/knowledge-verification/forest';
 await mkdir(out,{recursive:true});
 const browser=await chromium.launch({headless:true,channel:'chrome'}),profiles=new Set(),errors=[];
 
@@ -23,12 +23,15 @@ function fixture(){
 /** 有界等待页面状态更新。 */
 async function until(check){for(let i=0;i<100;i++){if(await check())return;await new Promise(resolve=>setTimeout(resolve,100));}throw new Error('个人知识树界面未按预期更新');}
 
-/** 通过原有目录进入知识树。 */
+/** 从阅读界面当前可见的入口进入知识树。 */
 async function tree(page){
  if(await page.getByLabel('选择公共知识树').isVisible())return;
  const dialog=page.getByRole('dialog');if(await dialog.count())await dialog.getByRole('button',{name:'返回阅读'}).click();
- await page.getByRole('button',{name:'目录',exact:true}).click();
- await page.locator('.forest-topic').first().waitFor();
+ const openers=['目录','打开知识树','我的知识树'].map(name=>page.getByRole('button',{name,exact:true}));
+ let opened=false;
+ for(const opener of openers)if(await opener.isVisible()){await opener.click();opened=true;break;}
+ assert(opened,'阅读界面没有可见的知识树入口');
+ await page.getByLabel('选择公共知识树').waitFor();
 }
 
 /** 验证渲染后的卡片，防止视图缩放造成覆盖或文字越出卡片。 */
@@ -57,6 +60,26 @@ async function inspectTreeControls(page){
  }
 }
 
+/** 切换到另一棵已发布树后，标题和选择框都应与云端设置一致。 */
+async function changeTree(page,updateProfile){
+ const selector=page.getByLabel('选择公共知识树');
+ const options=await selector.locator('option').evaluateAll(items=>items.map(item=>({value:item.value,label:item.textContent.trim()})));
+ const current=await selector.inputValue(),target=options.find(option=>option.value!==current);
+ if(!target)return;
+ const saved=await selector.locator('option:checked').textContent();
+ await page.route('**/api/knowledge/account/settings',async route=>{
+  const response=await route.fetch(),result=await response.json();
+  if(response.ok()&&result.profile)updateProfile(result.profile);
+  await route.fulfill({status:response.status(),headers:{'content-type':'application/json'},body:JSON.stringify(result)});
+ });
+ await selector.selectOption(target.value);
+ await page.getByRole('heading',{name:target.label,exact:true}).waitFor();
+ assert.equal(await selector.inputValue(),target.value);
+ await selector.selectOption(current);
+ await page.getByRole('heading',{name:saved.trim(),exact:true}).waitFor();
+ assert.equal(await selector.inputValue(),current);
+}
+
 try{
  for(const [name,viewport]of [['desktop',{width:1440,height:1000}],['tablet',{width:768,height:900}],['phone',{width:390,height:844}]]){
   const context=await browser.newContext({viewport,hasTouch:name==='phone'});
@@ -75,7 +98,7 @@ try{
   });
   await page.route('**/api/knowledge/explore',route=>{throw new Error('界面验证不应发起生成请求：'+route.request().url());});
   await page.goto(base);await page.locator('#input-query').waitFor();
-  await page.getByRole('button',{name:'目录',exact:true}).click();
+  await tree(page);
   await page.getByRole('dialog',{name:'知识树'}).waitFor();
   assert(await page.getByLabel('个人知识树',{exact:true}).isVisible());
   assert.equal(await page.getByRole('button',{name:'书架',exact:true}).count(),0);
@@ -120,6 +143,7 @@ try{
    await page.mouse.move(bounds.x+bounds.width-40,bounds.y+40);await page.mouse.down();
    await page.mouse.move(bounds.x+100,bounds.y+40,{steps:8});await page.mouse.up();
    assert(await canvas.evaluate(element=>element.scrollLeft>0),'鼠标拖动未平移画布');
+   await changeTree(page,profile=>{snapshot={...snapshot,profile:{...snapshot.profile,...profile}};});
   }
   snapshot={...snapshot,nodes:[],events:[]};
   await page.getByRole('button',{name:'立即同步',exact:true}).click();
