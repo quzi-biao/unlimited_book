@@ -3,18 +3,19 @@ import { Table, Button, Space, message, Tag, Popconfirm, Tooltip, Typography } f
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { adminApi } from '../api';
+import styles from './PromptStylesPage.module.css';
 
 const { Title } = Typography;
 
 export default function PromptStylesPage() {
   const navigate = useNavigate();
-  const [styles, setStyles] = useState([]);
+  const [promptStyles, setPromptStyles] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     adminApi.promptStyles.list()
-      .then(data => { if (active) setStyles(data); })
+      .then(data => { if (active) setPromptStyles(data); })
       .catch(err => { if (active) message.error(err.message); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -24,7 +25,7 @@ export default function PromptStylesPage() {
     setLoading(true);
     try {
       const data = await adminApi.promptStyles.list();
-      setStyles(data);
+      setPromptStyles(data);
     } catch (err) {
       message.error(err.message);
     } finally {
@@ -43,7 +44,16 @@ export default function PromptStylesPage() {
   };
 
   const columns = [
-    { title: '风格名称', dataIndex: 'name', key: 'name' },
+    {
+      title: '风格名称', dataIndex: 'name', key: 'name',
+      render: (name, record) => <div className={styles.styleNameCell}>
+        <span>{name}</span>
+        <span className={styles.mobileMeta}>
+          <Tag color="blue">{record.imageModel || '模型未指定'}</Tag>
+          {record.isActive ? <Tag color="success">启用</Tag> : <Tag>停用</Tag>}
+        </span>
+      </div>,
+    },
     { title: '适用的生图模型', dataIndex: 'imageModel', key: 'imageModel', render: (val) => <Tag color="blue">{val || '未指定'}</Tag> },
     { title: '状态', dataIndex: 'isActive', key: 'isActive', render: (active) => active ? <Tag color="success">启用</Tag> : <Tag color="default">停用</Tag> },
     {
@@ -90,7 +100,7 @@ export default function PromptStylesPage() {
       <Table
         rowKey="id"
         columns={columns}
-        dataSource={styles}
+        dataSource={promptStyles}
         loading={loading}
         pagination={false}
         scroll={{ x: 720 }}

@@ -1,0 +1,23 @@
+.styleNameCell {
+  min-width: 0;
+}
+
+.mobileMeta {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .mobileMeta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 4px;
+  }
+
+  .mobileMeta :global(.ant-tag) {
+    margin-inline-end: 0;
+    font-size: 11px;
+    line-height: 18px;
+  }
+}
