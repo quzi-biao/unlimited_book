@@ -53,13 +53,13 @@ function EditCell({ configKey, value, onSaved }) {
 
   if (editing) {
     return (
-      <Space size={4}>
+      <Space size={4} wrap style={{ maxWidth: '100%' }}>
         {meta.type === 'select' ? (
           <Select
             size="small"
             value={draft}
             onChange={setDraft}
-            style={{ width: 140 }}
+            style={{ width: 120 }}
             autoFocus
           >
             {meta.options.map((opt) => (
@@ -71,7 +71,7 @@ function EditCell({ configKey, value, onSaved }) {
             size="small"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            style={{ width: 140 }}
+            style={{ width: 120 }}
             autoFocus
           />
         ) : meta.type === 'decimal' ? (
@@ -99,10 +99,12 @@ function EditCell({ configKey, value, onSaved }) {
         )}
         <Button
           type="primary" size="small" icon={<CheckOutlined />}
+          aria-label={`保存${meta.label || configKey}`}
           loading={loading} onClick={save}
         />
         <Button
           size="small" icon={<CloseOutlined />}
+          aria-label={`取消编辑${meta.label || configKey}`}
           onClick={() => { setDraft(value); setEditing(false); }}
         />
       </Space>
@@ -116,6 +118,7 @@ function EditCell({ configKey, value, onSaved }) {
       <Tooltip title="编辑">
         <Button
           type="text" size="small" icon={<EditOutlined />}
+          aria-label={`编辑${meta.label || configKey}`}
           onClick={() => {
             setDraft(meta.type === 'number' || meta.type === 'decimal' ? Number(value) : String(value));
             setEditing(true);
@@ -127,6 +130,7 @@ function EditCell({ configKey, value, onSaved }) {
 }
 
 export default function ConfigPage() {
+  const { message } = App.useApp();
   const [configs,  setConfigs]  = useState([]);
   const [loading,  setLoading]  = useState(true);
 
@@ -140,7 +144,14 @@ export default function ConfigPage() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    let active = true;
+    adminApi.config.list()
+      .then(res => { if (active) setConfigs(res.configs || []); })
+      .catch(err => { if (active) message.error(err.message || '获取配置失败'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [message]);
 
   // 分组
   const grouped = GROUP_ORDER.map((group) => ({
@@ -153,7 +164,7 @@ export default function ConfigPage() {
 
   const columns = [
     {
-      title: '配置项', key: 'label', width: 170,
+      title: '配置项', key: 'label', width: 120,
       render: (_, c) => {
         const meta = CONFIG_META[c.key];
         return (
@@ -165,7 +176,7 @@ export default function ConfigPage() {
       },
     },
     {
-      title: '当前值', key: 'value', width: 170,
+      title: '当前值', key: 'value', width: 160,
       render: (_, c) => (
         <EditCell configKey={c.key} value={c.value} onSaved={load} />
       ),

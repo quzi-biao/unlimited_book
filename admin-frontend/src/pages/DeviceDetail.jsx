@@ -241,8 +241,8 @@ export default function DeviceDetail() {
           { title: 'TTS 时长', value: `${Math.round((stats?.ttsSeconds ?? 0) / 60)} 分钟` },
           { title: '生成字数', value: `${Math.round((stats?.totalChars ?? 0) / 1000)} 千字` },
         ].map((s, i) => (
-          <Col key={i}>
-            <Card size="small" style={{ minWidth: 90, textAlign: 'center' }}>
+          <Col key={i} xs={12} sm={8} md={6} xl={3}>
+            <Card size="small" style={{ height: '100%', textAlign: 'center' }}>
               <Statistic title={s.title} value={s.value} valueStyle={s.color ? { color: s.color, fontSize: 18 } : { fontSize: 18 }} />
             </Card>
           </Col>
