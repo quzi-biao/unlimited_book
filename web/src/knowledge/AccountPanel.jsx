@@ -5,7 +5,7 @@ import { exportLibrary } from './export.js';
 import { TreeMap } from './TreeMap.jsx';
 
 /** 账号、可重置偏好、监护许可都由用户主动操作。 */
-export function AccountPanel({ profile, switchAccount, settings, toast, onClose }) {
+export function AccountPanel({ profile, switchAccount, settings, toast }) {
   const [login, setLogin] = useState(true);
   const [username, setUsername] = useState(''); const [password, setPassword] = useState('');
   const [ageBand, setAgeBand] = useState('minor'); const [displayName, setDisplayName] = useState('');
@@ -41,7 +41,7 @@ export function AccountPanel({ profile, switchAccount, settings, toast, onClose 
     catch (error) { toast(error.message); await loadChildren(); }
   }
 
-  return <section className="knowledge-panel" aria-label="我的账号"><header><h2>我的知识库</h2><button onClick={onClose}>关闭</button></header>
+  return <section className="knowledge-panel" aria-label="我的账号">
     <p>{profile.username ? `已登录：${profile.displayName}（${profile.username}）` : '当前数据属于这台设备。创建账号后，可以在手机、平板和电脑上打开同一座知识库。'}</p>
     <div className="action-row"><button onClick={() => setLogin(true)}>登录已有账号</button>{!profile.username && <button onClick={() => setLogin(false)}>创建账号</button>}
       {profile.username && <button onClick={() => switchAccount(null)}>切回本机身份</button>}</div>

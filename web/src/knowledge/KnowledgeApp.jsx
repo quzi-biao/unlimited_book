@@ -157,9 +157,9 @@ export default function KnowledgeApp() {
       initialShelfOpen={panel === 'tree'} openForTreePanel={panel === 'tree'}><App knowledge={workspace}/></AppStateProvider>
     {sectionTitle[panel] && panel !== 'tree' && <div className="shelf-dialog-backdrop" onClick={()=>setPanel(null)} onKeyDown={e=>{if(e.key==='Escape')setPanel(null);}}>
       <section className={`knowledge-app shelf-dialog${panel==='tree'?' knowledge-tree-dialog':''}${nodeViews[panel]?' node-task-dialog':''}`} aria-label={sectionTitle[panel]} role="dialog" aria-modal="true" onClick={e=>e.stopPropagation()}>
-        <header className="shelf-dialog-header"><h2>{sectionTitle[panel]}</h2><button autoFocus aria-label="返回阅读" onClick={()=>setPanel(null)}>关闭</button></header>
+        <header className="shelf-dialog-header"><h2>{sectionTitle[panel]}</h2><button autoFocus aria-label={panel==='account'?'返回知识树':'返回阅读'} onClick={()=>setPanel(panel==='account'?'tree':null)}>{panel==='account'?'返回知识树':'关闭'}</button></header>
         {nodeViews[panel]&&node&&<NodeWorkspace key={node.assetKey+':'+panel} view={nodeViews[panel]} node={node} nodes={snapshot.nodes} events={snapshot.events} mode={profile.mode} record={record} onExplore={explore} toast={toast} onClose={()=>setPanel(null)} onDelete={deleteNode}/>}
-        {panel==='account' && <AccountPanel profile={profile} switchAccount={library.switchAccount} settings={library.settings} toast={toast} onClose={()=>setPanel('tree')}/>}
+        {panel==='account' && <AccountPanel profile={profile} switchAccount={library.switchAccount} settings={library.settings} toast={toast}/>}
         {panel==='learning' && <><ReportNotice profile={profile}/><LearningPanel snapshot={snapshot} onOpen={openKey} onClose={()=>setPanel('tree')} toast={toast} selected={node?.assetKey}/></>}
         <footer className="sync-status"><span>{library.pending ? `${library.pending} 条记录等待同步` : library.status} · {library.mediaStatus}</span><button onClick={library.sync}>立即同步</button></footer>
       </section>

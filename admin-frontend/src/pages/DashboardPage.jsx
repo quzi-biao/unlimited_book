@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Card, Statistic, Table, Tag } from 'antd';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, Button, Card, Empty, Statistic, Table, Tag } from 'antd';
 import { Link } from 'react-router-dom';
 import { adminApi } from '../api';
 import styles from './DashboardPage.module.css';
@@ -11,13 +11,36 @@ function fenToYuan(fen) {
 export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const fetchMetrics = useCallback(() => adminApi.dashboard.metrics(), []);
+
+  const retry = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const { metrics } = await fetchMetrics();
+      setData(metrics);
+    } catch (err) {
+      setError(err.message || '请检查网络后重试');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchMetrics]);
 
   useEffect(() => {
-    adminApi.dashboard.metrics().then(({ metrics }) => setData(metrics)).finally(() => setLoading(false));
-  }, []);
+    let active = true;
+    fetchMetrics()
+      .then(({ metrics }) => { if (active) setData(metrics); })
+      .catch(err => { if (active) setError(err.message || '请检查网络后重试'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [fetchMetrics]);
 
   if (loading) return <Card loading />;
-  if (!data) return <div>暂无数据</div>;
+  if (error) return <Alert message="经营数据加载失败" description={error} type="error" showIcon
+    action={<Button size="small" onClick={retry}>重试</Button>} />;
+  if (!data) return <Empty description="暂无经营数据" />;
 
   const orderStatusMap = {
     pending: { label: '未支付', color: 'default' },
