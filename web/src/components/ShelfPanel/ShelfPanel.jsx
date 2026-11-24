@@ -45,7 +45,7 @@ export function ShelfPanel({ knowledge, onLearning, onAccount, onClose, onToast 
             <span>{exploredCount} 个节点已点亮</span>
           </div>
           <div className={styles.treeControls}>
-            <label>内容来源
+            <label>选择知识树
               <select aria-label="选择公共知识树" value={profile.selectedTreeId || ''}
                 disabled={!snapshot.trees.length}
                 onChange={event => knowledge.settings({ selectedTreeId: event.target.value }).catch(error => onToast?.({ type: 'error', message: error.message }))}>
