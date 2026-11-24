@@ -134,7 +134,7 @@ export default function TicketsPage() {
         </Form>
       </Modal>
 
-      <Drawer title="处理工单" open={!!detail} onClose={() => setDetail(null)} width={520}>
+      <Drawer title="处理工单" open={!!detail} onClose={() => setDetail(null)} size={520}>
         {detail && (
           <Form form={detailForm} layout="vertical" initialValues={detail}>
             <Form.Item name="status" label="状态"><Select options={[{ value: 'open', label: '待处理' }, { value: 'processing', label: '处理中' }, { value: 'waiting', label: '等待用户' }, { value: 'resolved', label: '已解决' }, { value: 'closed', label: '已关闭' }]} /></Form.Item>
