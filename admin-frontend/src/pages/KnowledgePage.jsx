@@ -371,10 +371,10 @@ export default function KnowledgePage() {
     }
   }
   const trees = <div className={styles.treePage}>
-    <div className={styles.treeToolbar}>
+    {data.trees.length > 0 && <div className={styles.treeToolbar}>
       <Select className={styles.treeSelect} value={treeId || undefined} onChange={value => {setTreeId(value);setSelectedNodeId('');setNodeQuery('');}} placeholder="选择公共知识树" options={data.trees.map(t => ({value:t.id,label:`${t.title} · ${t.status === 'published' ? '已发布' : '草稿'}`}))}/>
       <Button type="primary" icon={<PlusOutlined />} onClick={() => {treeForm.resetFields();setNewTree(true);}}>新建知识树</Button>
-    </div>
+    </div>}
     {tree ? <>
       <section className={styles.treeSummary}>
         <div className={styles.treeHeading}>
