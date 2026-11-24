@@ -91,7 +91,7 @@ export default function OrdersPage() {
   };
 
   const columns = [
-    { title: '订单号', dataIndex: 'id', key: 'id' },
+    { title: '订单号', dataIndex: 'id', key: 'id', ellipsis: true },
     { title: '设备编号', dataIndex: ['device', 'deviceCode'], key: 'deviceCode' },
     { title: '套餐/描述', key: 'desc', render: (_, r) => r.plan?.name || `${r.points}点` },
     { title: '金额', key: 'amount', render: (_, r) => `¥${(r.amount / 100).toFixed(2)}` },
@@ -128,6 +128,8 @@ export default function OrdersPage() {
     {
       title: '操作',
       key: 'action',
+      width: 128,
+      fixed: 'right',
       render: (_, r) => (
         <div style={{ display: 'flex', gap: 8 }}>
           <Button size="small" type="link" onClick={() => openChannelModal(r)}>

@@ -106,7 +106,7 @@ export default function TicketsPage() {
     { title: '设备', key: 'device', render: (_, r) => r.device?.deviceCode ? <Link to={`/admin/devices/${r.deviceId}`}>{r.device.deviceCode}</Link> : '—' },
     { title: '渠道', key: 'channel', render: (_, r) => r.channel?.name ? <Link to={`/admin/channels/${r.channelId}`}>{r.channel.name}</Link> : '—' },
     { title: '留言数', key: 'msgs', render: (_, r) => r._count?.messages ?? 0 },
-    { title: '操作', key: 'action', render: (_, r) => <Button type="link" onClick={() => { setDetail(r); detailForm.setFieldsValue(r); }}>处理</Button> },
+    { title: '操作', key: 'action', width: 80, fixed: 'right', render: (_, r) => <Button type="link" onClick={() => { setDetail(r); detailForm.setFieldsValue(r); }}>处理</Button> },
   ];
 
   return (
