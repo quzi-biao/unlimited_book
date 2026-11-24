@@ -77,7 +77,7 @@ export default function ChannelsPage() {
     { title: '联系人', dataIndex: 'contactName', key: 'contactName' },
     { title: '状态', dataIndex: 'isActive', key: 'isActive', render: (v) => <Tag color={v ? 'green' : 'red'}>{v ? '启用' : '禁用'}</Tag> },
     {
-      title: '操作', key: 'action', render: (_, r) => (
+      title: '操作', key: 'action', width: 120, fixed: 'right', render: (_, r) => (
         <Space>
           <Button type="link" onClick={() => { setEditing(r); setOpen(true); form.setFieldsValue(r); }}>编辑</Button>
           <Popconfirm title="确认删除？" onConfirm={async () => {
