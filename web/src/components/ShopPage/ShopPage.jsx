@@ -86,7 +86,7 @@ export function ShopPage({ onToast }) {
       <div className={styles.backdrop} onClick={handleClose} />
       <div className={`${styles.panel} glass-strong`}>
         <div className={styles.header}>
-          <h2 className={styles.title}><Icon name="topup" size={20} /> 学习点数充値</h2>
+          <h2 className={styles.title}><Icon name="topup" size={20} /> 学习点数充值</h2>
           <button className="btn-icon" onClick={handleClose} aria-label="关闭"><Icon name="close" size={18} /></button>
         </div>
 
