@@ -10,7 +10,7 @@ import {
 import { adminApi } from '../api';
 import dayjs from 'dayjs';
 
-const { Text } = Typography;
+const { Title, Text } = Typography;
 const { Dragger } = Upload;
 
 function CreateModal({ open, onClose, onCreated }) {
@@ -148,13 +148,13 @@ export default function VersionsPage() {
   };
 
   const columns = [
+    { title: '版本名', dataIndex: 'versionName', key: 'versionName', render: v => <strong>{v}</strong> },
     {
       title: '状态', key: 'status',
       render: (_, v) => v.isCurrent
         ? <Tag color="success" icon={<CheckOutlined />}>当前版本</Tag>
         : <Tag color="default">历史版本</Tag>,
     },
-    { title: '版本名', dataIndex: 'versionName', key: 'versionName', render: v => <strong>{v}</strong> },
     { title: '版本号', dataIndex: 'versionCode', key: 'versionCode', render: v => <Text type="secondary">{v}</Text> },
     {
       title: '强制升级', dataIndex: 'forceUpgrade', key: 'forceUpgrade',
@@ -170,7 +170,7 @@ export default function VersionsPage() {
       render: v => <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(v).format('MM-DD HH:mm')}</Text>,
     },
     {
-      title: '操作', key: 'action',
+      title: '操作', key: 'action', width: 190, fixed: 'right',
       render: (_, v) => v.isCurrent ? (
         <Button type="link" danger size="small" icon={<StopOutlined />} onClick={handleClearCurrent}>撤销当前</Button>
       ) : (
@@ -184,8 +184,12 @@ export default function VersionsPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Space>
+      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <Title level={4} style={{ margin: 0 }}>版本管理</Title>
+          <Text type="secondary" style={{ fontSize: 13 }}>管理设备端 OTA 版本及升级策略</Text>
+        </div>
+        <Space wrap>
           <Button icon={<ReloadOutlined />} onClick={load}>刷新</Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>发布新版本</Button>
         </Space>

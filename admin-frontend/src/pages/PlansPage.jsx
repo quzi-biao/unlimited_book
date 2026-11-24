@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Table, Button, Space, Tag, Switch, Modal, Form,
+  Table, Button, Space, Tag, Switch, Modal, Form, Grid, Empty, Spin, Card,
   Input, InputNumber, Typography, App, Tooltip, Popconfirm,
 } from 'antd';
 import {
@@ -130,6 +130,8 @@ function PlanModal({ open, plan, onClose, onSaved }) {
 /** 主页面 */
 export default function PlansPage() {
   const { message } = App.useApp();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const [plans,   setPlans]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal,   setModal]   = useState({ open: false, plan: null });
@@ -146,9 +148,16 @@ export default function PlansPage() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    let active = true;
+    adminApi.plans.list()
+      .then(res => { if (active) setPlans(res.plans || []); })
+      .catch(err => { if (active) message.error(err.message); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [message]);
 
-  const handleToggle = async (id, checked) => {
+  const handleToggle = async (id) => {
     try {
       await adminApi.plans.toggle(id);
       load();
@@ -194,17 +203,17 @@ export default function PlansPage() {
       render: (_, r) => <Text type="secondary">{r._count?.orders ?? 0}</Text>,
     },
     {
-      title: '启用', key: 'isActive', width: 80,
+      title: '启用', key: 'isActive', width: 80, fixed: 'right',
       render: (_, r) => (
         <Switch
           checked={r.isActive}
           size="small"
-          onChange={(checked) => handleToggle(r.id, checked)}
+          onChange={() => handleToggle(r.id)}
         />
       ),
     },
     {
-      title: '操作', key: 'action', width: 100,
+      title: '操作', key: 'action', width: 100, fixed: 'right',
       render: (_, r) => (
         <Space size={4}>
           <Tooltip title="编辑">
@@ -250,15 +259,79 @@ export default function PlansPage() {
         </Button>
       </div>
 
-      <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={plans}
-        loading={loading}
-        size="middle"
-        pagination={false}
-        scroll={{ x: 960 }}
-      />
+      {isMobile ? (
+        <Spin spinning={loading}>
+          {plans.length ? (
+            <div style={{ display: 'grid', gap: 12 }}>
+              {plans.map(plan => (
+                <Card key={plan.id} size="small">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <Text strong ellipsis style={{ display: 'block' }}>{plan.name}</Text>
+                      <Text strong style={{ color: '#16a34a', fontSize: 18 }}>{fmtPrice(plan.price)}</Text>
+                    </div>
+                    <Switch
+                      checked={plan.isActive}
+                      aria-label={`启用${plan.name}`}
+                      onChange={() => handleToggle(plan.id)}
+                    />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12, padding: 12, background: '#f7f8fa', borderRadius: 6 }}>
+                    <div>
+                      <Text type="secondary" style={{ fontSize: 12 }}>赠送点数</Text>
+                      <div><Tag color="purple">{(plan.points || 0).toLocaleString()} 点</Tag></div>
+                    </div>
+                    <div>
+                      <Text type="secondary" style={{ fontSize: 12 }}>当月生成额度</Text>
+                      <div><Text strong>{(plan.monthlyAllowance || 0).toLocaleString()}</Text></div>
+                    </div>
+                  </div>
+                  {plan.descriptionJson && (
+                    <Text type="secondary" style={{ display: 'block', marginTop: 12, wordBreak: 'break-word' }}>
+                      {plan.descriptionJson}
+                    </Text>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 12, paddingTop: 10, borderTop: '1px solid #f0f0f0' }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>订单 {plan._count?.orders ?? 0}</Text>
+                    <Space size={4}>
+                      <Tooltip title="编辑">
+                        <Button
+                          type="text" size="small" icon={<EditOutlined />}
+                          aria-label={`编辑${plan.name}`}
+                          onClick={() => setModal({ open: true, plan })}
+                        />
+                      </Tooltip>
+                      <Tooltip title={plan._count?.orders > 0 ? '有关联订单，不可删除' : '删除'}>
+                        <Popconfirm
+                          title="确认删除此套餐？"
+                          disabled={plan._count?.orders > 0}
+                          onConfirm={() => handleDelete(plan.id)}
+                        >
+                          <Button
+                            type="text" size="small" danger icon={<DeleteOutlined />}
+                            aria-label={`删除${plan.name}`}
+                            disabled={plan._count?.orders > 0}
+                          />
+                        </Popconfirm>
+                      </Tooltip>
+                    </Space>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : !loading ? <Empty description="暂无套餐" /> : null}
+        </Spin>
+      ) : (
+        <Table
+          rowKey="id"
+          columns={columns}
+          dataSource={plans}
+          loading={loading}
+          size="middle"
+          pagination={false}
+          scroll={{ x: 960 }}
+        />
+      )}
 
       <PlanModal
         open={modal.open}
