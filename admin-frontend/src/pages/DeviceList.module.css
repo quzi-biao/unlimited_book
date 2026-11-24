@@ -1,0 +1,45 @@
+.toolbar {
+  display: grid;
+  grid-template-columns: 160px minmax(220px, 300px) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.channelFilter,
+.search {
+  width: 100%;
+  min-width: 0;
+}
+
+.deleteMode {
+  justify-self: end;
+}
+
+@media (max-width: 767px) {
+  .toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .channelFilter {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .refresh {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .search {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .deleteMode {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-self: start;
+  }
+}

@@ -3,8 +3,9 @@ import { Button, Card, Form, Input, InputNumber, Modal, Popconfirm, Select, Spac
 import { PlusOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { adminApi } from '../api';
+import styles from './ChannelsPage.module.css';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const CHANNEL_TYPES = {
   affiliate: '分销商',
@@ -30,7 +31,17 @@ export default function ChannelsPage() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    let active = true;
+    adminApi.channels.list().then(res => {
+      if (active) setChannels(res.channels || []);
+    }).catch(error => {
+      if (active) message.error(error.message);
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, [message]);
 
   const save = async () => {
     const values = await form.validateFields();
@@ -77,7 +88,7 @@ export default function ChannelsPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div className={styles.toolbar}>
         <div>
           <Text type="secondary">先把渠道主体、联系人、分润规则和启停状态管起来。</Text>
         </div>
@@ -85,7 +96,7 @@ export default function ChannelsPage() {
       </div>
 
       <Card>
-        <Table rowKey="id" columns={columns} dataSource={channels} loading={loading} pagination={false} size="small" />
+        <Table rowKey="id" columns={columns} dataSource={channels} loading={loading} pagination={false} size="small" scroll={{ x: 1120 }} />
       </Card>
 
       <Modal title={editing ? '编辑渠道' : '新增渠道'} open={open} onCancel={() => setOpen(false)} onOk={save} destroyOnClose>

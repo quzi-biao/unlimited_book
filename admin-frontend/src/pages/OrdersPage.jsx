@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Table, Card, Button, Input, Modal, Select, message, Tag, Typography } from 'antd';
 
 const { Text } = Typography;
@@ -9,7 +9,8 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [search, setSearch] = useState('');
 
   const [channels, setChannels] = useState([]);
@@ -22,38 +23,35 @@ export default function OrdersPage() {
   const [filterSettlement, setFilterSettlement] = useState(undefined);
 
   useEffect(() => {
-    fetchOrders();
-    fetchChannels();
-  }, [page]);
-
-  const fetchOrders = async (s = search, fStatus = filterStatus, fChannel = filterChannel, fSettlement = filterSettlement) => {
-    setLoading(true);
-    try {
-      const res = await adminApi.orders.list({ 
-        page, 
-        limit: 10, 
-        search: s,
-        ...(fStatus && { status: fStatus }),
-        ...(fChannel && { channelId: fChannel }),
-        ...(fSettlement && { channelSettlementStatus: fSettlement })
-      });
+    let active = true;
+    adminApi.orders.list({
+      page,
+      limit: 10,
+      search,
+      ...(filterStatus && { status: filterStatus }),
+      ...(filterChannel && { channelId: filterChannel }),
+      ...(filterSettlement && { channelSettlementStatus: filterSettlement }),
+    }).then(res => {
+      if (!active) return;
       setOrders(res.orders);
       setTotal(res.total);
-    } catch (err) {
-      message.error(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    }).catch(err => {
+      if (active) message.error(err.message);
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, [page, search, filterStatus, filterChannel, filterSettlement, refreshKey]);
 
-  const fetchChannels = async () => {
-    try {
-      const res = await adminApi.channels.list();
-      setChannels(res.channels || []);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  useEffect(() => {
+    let active = true;
+    adminApi.channels.list().then(res => {
+      if (active) setChannels(res.channels || []);
+    }).catch(err => {
+      if (active) console.error(err);
+    });
+    return () => { active = false; };
+  }, []);
 
   const handleRefund = (order) => {
     Modal.confirm({
@@ -63,7 +61,8 @@ export default function OrdersPage() {
         try {
           const result = await adminApi.orders.refund(order.id);
           message.success(result.message);
-          fetchOrders();
+          setLoading(true);
+          setRefreshKey(key => key + 1);
         } catch (err) {
           message.error(err.message);
         }
@@ -83,7 +82,8 @@ export default function OrdersPage() {
       await adminApi.orders.update(currentOrder.id, { channelId: selectedChannel });
       message.success('修改归属渠道成功');
       setChannelModalVisible(false);
-      fetchOrders();
+      setLoading(true);
+      setRefreshKey(key => key + 1);
     } catch (err) {
       message.error(err.message);
     }
@@ -143,26 +143,26 @@ export default function OrdersPage() {
   ];
 
   return (
-    <div style={{ padding: 24 }}>
+    <div>
       <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
-        <Select allowClear placeholder="订单状态" style={{ width: 120 }} value={filterStatus} onChange={v => { setFilterStatus(v); setPage(1); fetchOrders(search, v, filterChannel, filterSettlement); }}>
+        <Select allowClear placeholder="订单状态" style={{ width: 120 }} value={filterStatus} onChange={v => { setLoading(true); setFilterStatus(v); setPage(1); }}>
           <Select.Option value="pending">待支付</Select.Option>
           <Select.Option value="paid">已支付</Select.Option>
           <Select.Option value="refund_pending">退款处理中</Select.Option>
           <Select.Option value="refunded">已退款</Select.Option>
           <Select.Option value="cancelled">已取消</Select.Option>
         </Select>
-        <Select allowClear placeholder="归属渠道" style={{ width: 150 }} value={filterChannel} onChange={v => { setFilterChannel(v); setPage(1); fetchOrders(search, filterStatus, v, filterSettlement); }}>
+        <Select allowClear placeholder="归属渠道" style={{ width: 150 }} value={filterChannel} onChange={v => { setLoading(true); setFilterChannel(v); setPage(1); }}>
           {channels.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
         </Select>
-        <Select allowClear placeholder="渠道结算状态" style={{ width: 150 }} value={filterSettlement} onChange={v => { setFilterSettlement(v); setPage(1); fetchOrders(search, filterStatus, filterChannel, v); }}>
+        <Select allowClear placeholder="渠道结算状态" style={{ width: 150 }} value={filterSettlement} onChange={v => { setLoading(true); setFilterSettlement(v); setPage(1); }}>
           <Select.Option value="unsettled">未结算</Select.Option>
           <Select.Option value="settled">已结算</Select.Option>
         </Select>
         <Input.Search
           placeholder="搜索订单号或设备编号"
           allowClear
-          onSearch={(v) => { setSearch(v); setPage(1); fetchOrders(v, filterStatus, filterChannel, filterSettlement); }}
+          onSearch={(v) => { setLoading(true); setSearch(v); setPage(1); }}
           style={{ width: 300 }}
         />
       </div>
@@ -172,7 +172,8 @@ export default function OrdersPage() {
           columns={columns}
           rowKey="id"
           loading={loading}
-          pagination={{ current: page, total, pageSize: 10, onChange: setPage }}
+          scroll={{ x: 1180 }}
+          pagination={{ current: page, total, pageSize: 10, onChange: value => { setLoading(true); setPage(value); } }}
         />
       </Card>
 

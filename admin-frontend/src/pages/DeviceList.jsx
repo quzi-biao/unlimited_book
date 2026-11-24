@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Table, Input, Button, Space, Typography, Card, Modal, Form, Select, App, Popconfirm } from 'antd';
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import { adminApi } from '../api';
+import styles from './DeviceList.module.css';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
@@ -10,7 +11,7 @@ import 'dayjs/locale/zh-cn';
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 function fmtDur(seconds) {
   if (!seconds) return '—';
@@ -28,7 +29,7 @@ export default function DeviceList() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [filterChannelId, setFilterChannelId] = useState(undefined);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   // 编辑功能状态
@@ -50,7 +51,14 @@ export default function DeviceList() {
     }
   }, [page, search, filterChannelId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let active = true;
+    adminApi.devices.list({ page, limit: 20, search, ...(filterChannelId ? { channelId: filterChannelId } : {}) })
+      .then(res => { if (active) setData(res); })
+      .catch(err => { if (active) console.error(err); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [page, search, filterChannelId]);
 
   useEffect(() => {
     adminApi.channels.list().then(res => setChannels(res.channels || [])).catch(() => {});
@@ -172,25 +180,23 @@ export default function DeviceList() {
       </div>
 
       <Card>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-          <Space>
+        <div className={styles.toolbar}>
             <Select
+              className={styles.channelFilter}
               placeholder="按渠道筛选"
               allowClear
-              style={{ width: 160 }}
               options={channels.map(c => ({ value: c.id, label: c.name }))}
               value={filterChannelId}
-              onChange={v => { setFilterChannelId(v); setPage(1); }}
+              onChange={v => { setLoading(true); setFilterChannelId(v); setPage(1); }}
             />
             <Input.Search
+              className={styles.search}
               placeholder="搜索设备码、备注、型号…"
               allowClear enterButton={<SearchOutlined />}
-              style={{ width: 300 }}
-              onSearch={v => { setSearch(v); setPage(1); }}
+              onSearch={v => { setLoading(true); setSearch(v); setPage(1); }}
             />
-            <Button icon={<ReloadOutlined />} onClick={load}>刷新</Button>
-          </Space>
-          <Button 
+          <Button className={styles.refresh} icon={<ReloadOutlined />} onClick={load}>刷新</Button>
+          <Button className={styles.deleteMode}
             danger={isDeleteMode} 
             onClick={() => setIsDeleteMode(!isDeleteMode)}
           >
@@ -207,7 +213,7 @@ export default function DeviceList() {
           pagination={{
             current: page, pageSize: 20, total: data.total,
             showSizeChanger: false, showTotal: t => `共 ${t} 条`,
-            onChange: p => setPage(p),
+            onChange: p => { setLoading(true); setPage(p); },
           }}
         />
       </Card>
