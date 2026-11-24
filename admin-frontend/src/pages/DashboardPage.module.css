@@ -32,6 +32,11 @@
   max-width: 100%;
 }
 
+/* 看板移动端只保留三列时，强制表格收进卡片，避免状态标签被裁掉。 */
+.responsiveTable {
+  min-width: 0;
+}
+
 @media (max-width: 1100px) {
   .metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -46,6 +51,42 @@
 
   .metric :global(.ant-card-body) {
     padding: 14px 16px;
+  }
+
+  .responsiveTable :global(.ant-table table) {
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  .responsiveTable :global(.ant-table-cell) {
+    padding-inline: 8px;
+  }
+
+  .responsiveTable :global(.ant-table-thead th:nth-child(1)),
+  .responsiveTable :global(.ant-table-tbody td:nth-child(1)) {
+    width: 42% !important;
+  }
+
+  .responsiveTable :global(.ant-table colgroup col:nth-child(1)) {
+    width: 42% !important;
+  }
+
+  .responsiveTable :global(.ant-table-thead th:nth-child(2)),
+  .responsiveTable :global(.ant-table-tbody td:nth-child(2)) {
+    width: 25% !important;
+  }
+
+  .responsiveTable :global(.ant-table colgroup col:nth-child(2)) {
+    width: 25% !important;
+  }
+
+  .responsiveTable :global(.ant-table-thead th:nth-child(3)),
+  .responsiveTable :global(.ant-table-tbody td:nth-child(3)) {
+    width: 33% !important;
+  }
+
+  .responsiveTable :global(.ant-table colgroup col:nth-child(3)) {
+    width: 33% !important;
   }
 }
 

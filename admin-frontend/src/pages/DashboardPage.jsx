@@ -102,11 +102,11 @@ export default function DashboardPage() {
       </section>
 
       <Card title="最近订单" className={styles.tableCard}>
-        <Table rowKey="id" columns={orderColumns} dataSource={data.recentOrders} pagination={false} size="small" scroll={{ x: 'max-content' }} />
+        <Table className={styles.responsiveTable} rowKey="id" columns={orderColumns} dataSource={data.recentOrders} pagination={false} size="small" scroll={{ x: 'max-content' }} />
       </Card>
 
       <Card title="最近工单" className={styles.tableCard}>
-        <Table rowKey="id" columns={ticketColumns} dataSource={data.recentTickets} pagination={false} size="small" scroll={{ x: 'max-content' }} />
+        <Table className={styles.responsiveTable} rowKey="id" columns={ticketColumns} dataSource={data.recentTickets} pagination={false} size="small" scroll={{ x: 'max-content' }} />
       </Card>
     </div>
   );
