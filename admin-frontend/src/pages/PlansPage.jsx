@@ -18,6 +18,27 @@ const { Title, Text } = Typography;
 /** 格式化分→元 */
 const fmtPrice = (fen) => `¥${(fen / 100).toFixed(2)}`;
 
+/** 套餐描述历史上既保存过纯文本，也保存过 { text } / Quill ops JSON。 */
+function formatDescription(value) {
+  if (value == null) return '';
+  if (typeof value === 'object') {
+    if (typeof value.text === 'string') return value.text;
+    if (typeof value.content === 'string') return value.content;
+    if (Array.isArray(value.ops)) {
+      return value.ops.map(op => typeof op?.insert === 'string' ? op.insert : '').join('');
+    }
+    return '';
+  }
+  const text = String(value);
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed && typeof parsed === 'object') return formatDescription(parsed) || text;
+  } catch {
+    // 旧数据可能就是普通文本。
+  }
+  return text;
+}
+
 /** 新建/编辑 弹窗 */
 function PlanModal({ open, plan, onClose, onSaved }) {
   const { message } = App.useApp();
@@ -29,7 +50,7 @@ function PlanModal({ open, plan, onClose, onSaved }) {
     if (open) {
       form.setFieldsValue(
         plan
-          ? { ...plan, priceYuan: plan.price / 100 }
+          ? { ...plan, description: formatDescription(plan.descriptionJson), priceYuan: plan.price / 100 }
           : { isActive: true, sortOrder: 0 }
       );
     }
@@ -192,7 +213,7 @@ export default function PlansPage() {
     {
       title: '描述', dataIndex: 'descriptionJson', key: 'desc',
       ellipsis: true,
-      render: (v) => <Text type="secondary" style={{ fontSize: 12 }}>{v || '—'}</Text>,
+      render: (v) => <Text type="secondary" style={{ fontSize: 12 }}>{formatDescription(v) || '—'}</Text>,
     },
     {
       title: '排序', dataIndex: 'sortOrder', key: 'sortOrder', width: 70,
@@ -288,7 +309,7 @@ export default function PlansPage() {
                   </div>
                   {plan.descriptionJson && (
                     <Text type="secondary" style={{ display: 'block', marginTop: 12, wordBreak: 'break-word' }}>
-                      {plan.descriptionJson}
+                      {formatDescription(plan.descriptionJson)}
                     </Text>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 12, paddingTop: 10, borderTop: '1px solid #f0f0f0' }}>
