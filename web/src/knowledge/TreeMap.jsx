@@ -10,7 +10,10 @@ export function TreeMap({nodes,connections=[],selected,onSelect}) {
   const layout=useMemo(()=>treeLayout(nodes),[nodes]);
   const [zoom,setZoom]=useState(1),[size,setSize]=useState({width:0,height:0});
   const scroll=useRef(null),drag=useRef(null),anchor=useRef(null),initialized=useRef(null);
-  const scale=Math.max(.8,Math.min(1,size.height/layout.height || 1))*zoom;
+  const baseScale=Math.max(.8,Math.min(1,size.height/layout.height || 1));
+  const scale=Math.max(.12,baseScale*zoom);
+  const fitZoom=Math.max(.12,Math.min(2.5,
+    Math.min((size.width-24)/layout.width,(size.height-24)/layout.height)/baseScale));
   const rootKeys=layout.branches.map(branch=>branch.key).join('|');
 
   useLayoutEffect(()=>{
@@ -37,7 +40,7 @@ export function TreeMap({nodes,connections=[],selected,onSelect}) {
     }
   },[scale,rootKeys,size.width,layout,selected]);
 
-  /** 缩放保留正在查看的位置；适合画布则完整显示个人知识树。 */
+  /** 缩放保留正在查看的位置；适合画布时按当前窗口完整容纳知识树。 */
   function changeZoom(next,fit=false) {
     const element=scroll.current;
     const margin=Math.max(0,(element.clientWidth-layout.width*scale)/2);
@@ -72,12 +75,12 @@ export function TreeMap({nodes,connections=[],selected,onSelect}) {
   }
 
   return <section className="knowledge-map forest-map" aria-label="知识树">
-    <div className="map-legend forest-legend"><span className="forest-legend-item"><i className="lit-dot"/>已探索</span><span className="forest-legend-item"><i className="dark-dot"/>等待探索</span>
+    {!!layout.branches.length&&<div className="map-legend forest-legend"><span className="forest-legend-item"><i className="lit-dot"/>已探索</span><span className="forest-legend-item"><i className="dark-dot"/>等待探索</span>
       <div className="forest-zoom"><button aria-label="缩小知识树" onClick={()=>changeZoom(zoom-.15)}>−</button>
         <button aria-label="放大知识树" onClick={()=>changeZoom(zoom+.15)}>＋</button>
-        <button onClick={()=>changeZoom(Math.min(size.width/layout.width,size.height/layout.height)/(scale/zoom),true)}>适合画布</button>
+        <button onClick={()=>changeZoom(fitZoom,true)}>适合画布</button>
         <button onClick={()=>changeZoom(1)}>复位</button></div>
-    </div>
+    </div>}
     <div className="map-scroll forest-scroll" ref={scroll} tabIndex="0" aria-label="个人知识树画布，可滚动查看话题分枝"
       onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={stopDrag} onPointerCancel={stopDrag}>
       {layout.branches.length?<svg width={layout.width*scale} height={layout.height*scale} viewBox={`0 0 ${layout.width} ${layout.height}`} className="forest-svg">
