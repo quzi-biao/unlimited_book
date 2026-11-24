@@ -3,9 +3,10 @@ import { Icon } from '../common/Icons.jsx';
 import styles from './ReaderNavigation.module.css';
 
 /** 左上角阅读导航，保留目录、书页面树及当前页解读入口。 */
-export function ReaderNavigation({ onNavigate }) {
+export function ReaderNavigation({ treePage, onTree, onNavigate, children }) {
   const { state, dispatch } = useAppState();
-  const page = state.bookFlat?.find(item => item.id === state.currentPageId);
+  const reading = treePage || state;
+  const page = reading.bookFlat?.find(item => item.id === reading.currentPageId);
   const pageTitle = page?.title || (state.currentPageId ? '当前探索' : '');
   const toggle = type => { onNavigate?.(); dispatch({ type }); };
   return (
@@ -15,18 +16,21 @@ export function ReaderNavigation({ onNavigate }) {
         onClick={() => toggle('TOGGLE_SHELF')} aria-label="目录" title="目录" id="btn-shelf">
         <Icon name="bookshelf" size={18} />
       </button>
-      {state.currentBookTitle && (
+      {reading.currentBookTitle && (
         <button className={styles.titleButton} id="btn-book-title"
-          title={state.currentBookTitle} aria-label="书页面树" onClick={() => toggle('TOGGLE_PAGETREE')}>
-          <span className={styles.titleText}>{state.currentBookTitle}</span>
+          title={treePage ? `${reading.currentBookTitle} · ${pageTitle}` : reading.currentBookTitle}
+          aria-label={treePage ? '我的知识树' : '书页面树'} onClick={() => treePage ? onTree() : toggle('TOGGLE_PAGETREE')}>
+          <span className={styles.titleText}>{reading.currentBookTitle}</span>
         </button>
       )}
-      {pageTitle && (
-        <button className={styles.titleButton} id="btn-page-title"
-          title={pageTitle} aria-label="AI 解读" onClick={() => toggle('TOGGLE_EXPLANATION')}>
-          <span className={styles.titleText}>{pageTitle}</span>
+      {pageTitle && <>
+        <button className={`${styles.explanationButton} ${state.explanationOpen ? styles.active : ''}`} id="btn-explanation"
+          title={`${pageTitle} · AI 解读`} aria-label="AI 解读" aria-expanded={state.explanationOpen}
+          aria-controls="ai-explanation-panel" onClick={() => toggle('TOGGLE_EXPLANATION')}>
+          <Icon name="lightbulb" size={16} /><span>AI 解读</span>
         </button>
-      )}
+        {children}
+      </>}
     </nav>
   );
 }

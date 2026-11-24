@@ -1,0 +1,395 @@
+.treePage {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.treeToolbar,
+.treeSummary,
+.treeHeading,
+.treeMetadata,
+.treeActions,
+.panelHeading,
+.detailHeading {
+  display: flex;
+  align-items: center;
+}
+
+.treeToolbar {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.treeSelect {
+  width: min(100%, 420px);
+}
+
+.treeSummary {
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px 24px;
+  flex-wrap: wrap;
+  padding: 4px 0 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.treeHeading {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.treeHeading h3,
+.detailHeading h3 {
+  margin: 0;
+  color: #20242a;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.treeMetadata {
+  flex-basis: 100%;
+  gap: 16px;
+  color: #646b75;
+  font-size: 13px;
+}
+
+.treeMetadata span,
+.panelHeading > div > span {
+  color: #8b929c;
+}
+
+.nodeSearch {
+  display: flex;
+  width: calc(100% - 28px);
+  margin: 10px 14px 0;
+}
+
+.treeActions {
+  justify-content: flex-end;
+}
+
+.progressRow {
+  max-width: 760px;
+}
+
+.treeWorkbench {
+  display: grid;
+  grid-template-columns: minmax(250px, 330px) minmax(0, 1fr);
+  min-height: 520px;
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.outlinePanel {
+  min-width: 0;
+  border-right: 1px solid #e5e7eb;
+}
+
+.panelHeading {
+  min-height: 52px;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid #edf0f2;
+}
+
+.panelHeading > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.outlineTree {
+  padding: 10px 8px 16px;
+}
+
+.outlineTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+}
+
+.outlineLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.outlineActions {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+
+.outlineActions :global(.ant-btn) {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+}
+
+.outlineStatus {
+  flex: none;
+  color: #8b929c;
+  font-size: 11px;
+}
+
+.detailPanel {
+  min-width: 0;
+  padding: 18px 22px 24px;
+}
+
+.detailHeading {
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #edf0f2;
+}
+
+.detailHeading > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.nodeContext {
+  margin: 12px 0;
+  color: #777f89;
+  font-size: 12px;
+}
+
+.nodeImage {
+  display: block;
+  width: min(100%, 640px);
+  max-height: 360px;
+  object-fit: contain;
+  background: #f4f6f7;
+}
+
+.imagePlaceholder {
+  display: grid;
+  min-height: 180px;
+  max-width: 640px;
+  place-items: center;
+  color: #8b929c;
+  background: #f4f6f7;
+}
+
+.explanation {
+  max-width: 760px;
+  margin-top: 18px;
+  color: #353b43;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.anchors {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 18px;
+  color: #59616b;
+  font-size: 13px;
+}
+
+.anchors strong {
+  color: #30363d;
+}
+
+.emptyTree {
+  padding: 72px 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.formHint {
+  margin: -4px 0 16px;
+  color: #777f89;
+  font-size: 12px;
+}
+
+.contentImagePreview {
+  display: grid;
+  place-items: center;
+  min-height: 120px;
+  margin: 12px 0 16px;
+  padding: 8px;
+  background: #f4f6f7;
+  color: #777f89;
+}
+
+.contentImagePreview :global(.ant-image) {
+  max-width: 100%;
+}
+
+.contentImagePreview img {
+  max-width: 100%;
+}
+
+.regionStage {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  max-height: 62dvh;
+  overflow: hidden;
+  background: #f4f6f7;
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+}
+
+.regionStage img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 62dvh;
+}
+
+.regionBox {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid #11a8a0;
+  background: rgba(17, 168, 160, 0.09);
+  pointer-events: auto;
+  cursor: move;
+  touch-action: none;
+}
+
+.regionPending {
+  border-style: dashed;
+  border-color: #c58a24;
+  background: rgba(197, 138, 36, 0.12);
+}
+
+.regionSelected {
+  outline: 2px solid #126f88;
+  outline-offset: 2px;
+}
+
+.regionBoxLabel {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  max-width: calc(100% - 4px);
+  overflow: hidden;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: rgba(18, 35, 40, 0.86);
+  color: #fff;
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.regionDraft {
+  border-style: dashed;
+  background: rgba(245, 158, 11, 0.12);
+  pointer-events: none;
+}
+
+.regionResizeHandle {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #fff;
+  border-radius: 2px;
+  background: #11a8a0;
+  box-shadow: 0 0 0 1px #087f79;
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.regionAiBadge {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: #155e75;
+  color: #fff;
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.regionList {
+  margin-top: 10px;
+}
+
+.regionInspector {
+  display: flex;
+  margin-top: 12px;
+  padding: 10px;
+  border-left: 3px solid #11a8a0;
+  background: #f4f7f7;
+}
+
+.uploadHint {
+  margin-left: 10px;
+  color: #777f89;
+  font-size: 12px;
+}
+
+.noMatches {
+  padding: 24px 8px;
+}
+
+.muted {
+  color: #8b929c;
+  font-size: 12px;
+}
+
+@media (max-width: 820px) {
+  .treeWorkbench {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .outlinePanel {
+    border-right: 0;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .outlineTree {
+    max-height: 320px;
+    overflow: auto;
+  }
+
+  .detailPanel {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  .treeToolbar,
+  .treeSelect {
+    width: 100%;
+  }
+
+  .treeActions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .detailHeading {
+    flex-direction: column;
+  }
+
+  .detailHeading > div:last-child {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}

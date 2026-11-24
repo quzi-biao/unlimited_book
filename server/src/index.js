@@ -8,6 +8,10 @@ import { fileURLToPath } from 'url';
 
 import prisma          from './config/db.js';
 import { getContentRevision } from './services/contentRevision.js';
+import { knowledgeBoundary } from './middleware/knowledgeBoundary.js';
+import knowledgeRouter from './routes/knowledge/index.js';
+import knowledgeAdminRouter from './routes/admin/knowledge.js';
+import { requireAdmin } from './routes/admin/auth.js';
 import booksRouter      from './routes/books.js';
 import pagesRouter      from './routes/pages.js';      // /:bookId/pages 路由
 import singlePageRouter from './routes/singlePage.js'; // /pages/:id 路由
@@ -37,11 +41,11 @@ app.use(cors({
   // 生产环境允许同源访问；开发环境允许 Vite dev server
   origin: isProd
     ? true
-    : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
+    : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://127.0.0.1:5185', 'http://127.0.0.1:5186', 'http://127.0.0.1:18743', 'https://appassets.androidplatform.net', 'unlimited-reader://app', 'null'],
   credentials: true,
 }));
 app.set('trust proxy', true);
-app.use(morgan(':method :url :status :response-time ms - :res[content-length] - IP: :remote-addr'));
+app.use(morgan(':method :url :status :response-time ms - :res[content-length] - IP: :remote-addr', { skip: req => req.path.startsWith('/api/knowledge/nearby') }));
 app.use(express.json({ limit: '50mb' })); // base64 图片可能较大
 
 // 仅在本地 Compose 显式配置时，提供已复制的图片和语音文件。
@@ -61,7 +65,12 @@ if (process.env.LOCAL_UPLOAD_DIR) {
   }));
 }
 
+app.use('/knowledge', express.static(path.resolve(__dirname, '../../web/public/knowledge')));
+
 // ── 路由挂载 ────────────────────────────────────────────
+app.use('/api/knowledge', knowledgeRouter);
+app.use('/api/admin/knowledge', requireAdmin, knowledgeAdminRouter);
+app.use('/api', knowledgeBoundary);
 app.use('/api/books',   booksRouter);
 app.use('/api/books',   pagesRouter);      // /api/books/:bookId/pages
 app.use('/api/pages',   singlePageRouter); // /api/pages/:id, /api/pages/cache/:hash
@@ -108,10 +117,10 @@ app.use((err, _req, res, _next) => {
   res.status(status).json({ error: err.message || '服务器内部错误' });
 });
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, process.env.LISTEN_HOST || undefined, () => {
   console.log(`✅ Flipbook server running on http://localhost:${PORT}`);
   // 启动时同步音色，之后每 24h 自动重夏
-  startVoiceSyncJob();
+  if (process.env.DISABLE_BACKGROUND_JOBS !== 'true') startVoiceSyncJob();
 });
 
 // ── PostgreSQL 连接保活（每 60s 执行 SELECT 1，防止服务端关闭空闲连接）──

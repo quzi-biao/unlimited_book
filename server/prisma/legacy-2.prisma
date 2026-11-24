@@ -1,0 +1,146 @@
+// ─────────────────────────────────────────────
+// 工单系统
+// ─────────────────────────────────────────────
+model SupportTicket {
+  id           String   @id @default(cuid())
+  deviceId     String?
+  device       Device?   @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  channelId    String?
+  channel      Channel?  @relation(fields: [channelId], references: [id], onDelete: SetNull)
+  title        String
+  type         String   @default("feedback") // device|payment|refund|feedback|other
+  status       String   @default("open")      // open|processing|waiting|resolved|closed
+  priority     String   @default("medium")    // low|medium|high|urgent
+  contactName  String?
+  contactPhone String?
+  description  String   @db.Text
+  resolution   String?  @db.Text
+  assigneeId   String?
+  assignee     User?    @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  resolvedAt   DateTime?
+  closedAt     DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  messages SupportTicketMessage[]
+
+  @@index([deviceId])
+  @@index([channelId])
+  @@index([status])
+  @@index([type])
+  @@map("support_tickets")
+}
+
+model SupportTicketMessage {
+  id         String   @id @default(cuid())
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorType String   @default("agent") // agent|customer|system
+  authorName String?
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+
+  @@index([ticketId])
+  @@map("support_ticket_messages")
+}
+
+// ─────────────────────────────────────────────
+// 渠道结算报表
+// ─────────────────────────────────────────────
+model ChannelSettlement {
+  id                      String   @id @default(cuid())
+  channelId               String
+  channel                 Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  periodStart             DateTime
+  periodEnd               DateTime
+  hardwareOrderCount      Int      @default(0)
+  hardwareRevenueFen      Int      @default(0)
+  hardwareCommissionFen   Int      @default(0)
+  subscriptionRevenueFen  Int      @default(0)
+  subscriptionCommissionFen Int    @default(0)
+  refundFen               Int      @default(0)
+  totalCommissionFen      Int      @default(0)
+  status                  String   @default("draft") // draft|confirmed|paid
+  note                    String?  @db.Text
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@index([channelId, periodStart, periodEnd])
+  @@map("channel_settlements")
+}
+
+// ─────────────────────────────────────────────
+// 百科话题图片缓存（全局共享）
+// ─────────────────────────────────────────────
+model TopicCache {
+  id         String   @id @default(cuid())
+  topicName  String   @unique
+  promptText String   @db.Text
+  promptMd5  String
+  imageUrl   String
+  hitCount   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([topicName])
+  @@map("topic_caches")
+}
+
+// ─────────────────────────────────────────────
+// TTS 音色表（从 MiniMax 同步）
+// ─────────────────────────────────────────────
+model Voice {
+  id          String   @id @default(cuid())
+  voiceId     String   @unique        // MiniMax voice_id
+  voiceName   String?                 // 中文名（系统音色有）
+  description String?                 // 音色描述
+  voiceType   String                  // 'system'|'voice_cloning'|'voice_generation'
+  enabled     Boolean  @default(false)
+  previewUrl  String?                 // OSS 试听音频 URL
+  syncedAt    DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("voices")
+}
+
+// ─────────────────────────────────────────────
+// 提示词风格表 (管理各个业务场景的关联提示词)
+// ─────────────────────────────────────────────
+model PromptStyle {
+  id                String   @id @default(cuid())
+  name              String   @unique             // 风格名称，如"酷炫科普风"
+  isActive          Boolean  @default(true)      // 是否启用，供客户端选择
+  imageModel        String   @default("gpt-image-2") // 适用的生图模型，如 'gpt-image-2' 或 'gemini'
+
+  // 统一下发的风格/规则（子场景会拼装或继承此内容）
+  unifiedStyle      String   @db.Text            // 比如画风描述、排版规则、极细线条等
+
+  // 各个业务场景的提示词模板或专属规则
+  topicExploration  String   @db.Text            // 主题探索生图 prompt
+  regionExploration String   @db.Text            // 区域探索（Scene/Object框选识别）
+  deepExploration   String   @db.Text            // 深入探索（科普文本生子图）
+  ttsSynthesis      String?  @db.Text            // tts合成系统提示词
+  pageDescription   String?  @db.Text            // 页面描述解释系统提示词
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  devices           Device[]
+
+  @@map("prompt_styles")
+}
+
+// ─────────────────────────────────────────────
+// 协议管理
+// ─────────────────────────────────────────────
+model Agreement {
+  id        String   @id @default(cuid())
+  name      String   @unique             // e.g., terms_of_service, privacy_policy, child_privacy
+  title     String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("agreements")
+}

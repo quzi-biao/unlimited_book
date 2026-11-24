@@ -7,6 +7,7 @@ import * as hash from '../src/services/hash.js';
 import * as pageCache from '../src/services/pageImageCache.js';
 import * as topicBooks from '../src/services/topicBooks.js';
 import { sharedTopicImagesEnabled } from '../src/services/topicImagePolicy.js';
+import { getDeviceAiConfig } from '../src/services/ai/deviceConfig.js';
 
 /** 构建无网络、无真实数据库的路由测试环境。@returns {Promise<object>} */
 async function setupRoutes({ sharedImages = true } = {}) {
@@ -24,7 +25,7 @@ async function setupRoutes({ sharedImages = true } = {}) {
   const prisma = {
     topic: { findMany: async () => [{ name: '森林' }] },
     device: { findUnique: async () => null },
-    promptStyle: { findFirst: async () => null },
+    promptStyle: { findUnique: async () => null },
     globalConfig: { findMany: async () => [] },
     topicCache: {
       findUnique: async ({ where }) => { cacheReads++; return where.topicName === '森林' ? { id: 'legacy-topic', imageUrl: 'legacy-image', hitCount: 0 } : null; },
@@ -58,6 +59,7 @@ async function setupRoutes({ sharedImages = true } = {}) {
     '../services/ai/gemini-vision.js': { identifyRegion() {}, explainSpot() {}, explainRegionFromUrl() {}, explainRegionFromBase64() {} },
     '../services/ai/gemini-text.js': { generateTitle() {}, generateTitleFromText: async query => { titleCalls.push(query); return ''; }, generateRandomTopics() {} },
     '../services/ai/imageSize.js': imageSize,
+    '../services/ai/deviceConfig.js': { getDeviceAiConfig: id => getDeviceAiConfig(id, prisma) },
     '../services/pageImageCache.js': pageCache,
     '../services/topicBooks.js': topicBooks,
     '../services/topicImagePolicy.js': { sharedTopicImagesEnabled: () => sharedImages },

@@ -1,7 +1,7 @@
 import UIKit
 import WebKit
 
-/// 正式阅读器入口；每次安装独立识别，连接线上书架和点数账户。
+/// 本机阅读器入口；打包页面与持久化知识库支持离线启动。
 @main
 final class ReaderApp: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
@@ -17,7 +17,9 @@ final class ReaderApp: UIResponder, UIApplicationDelegate {
 
 /// 全屏横向阅读，所有业务页面沿用正式网页版。
 final class ReaderController: UIViewController, WKNavigationDelegate, WKUIDelegate {
-    private let readerURL = URL(string: "https://www.wenyi-tech.cn/app/")!
+    private let readerURL = URL(string: "http://127.0.0.1:18743/index.html")!
+    private var bundleServer: BundledReader?
+    private let nativeBridge = ReaderNativeBridge()
     private var browser: WKWebView!
     private let retryButton = UIButton(type: .system)
     private let indicator = UIActivityIndicatorView(style: .large)
@@ -32,9 +34,11 @@ final class ReaderController: UIViewController, WKNavigationDelegate, WKUIDelega
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
-        config.websiteDataStore = .default()
-        config.userContentController.addUserScript(identityScript())
+        config.websiteDataStore = WKWebsiteDataStore(forIdentifier: UUID(uuidString: "A08E84C9-8E40-4715-8D06-392068D1BE31")!)
+        config.userContentController.add(nativeBridge, name: "reader")
+        nativeBridge.controller = self
         browser = WKWebView(frame: .zero, configuration: config)
+        nativeBridge.webView = browser
         browser.navigationDelegate = self
         browser.uiDelegate = self
         browser.translatesAutoresizingMaskIntoConstraints = false
@@ -67,23 +71,27 @@ final class ReaderController: UIViewController, WKNavigationDelegate, WKUIDelega
             retryButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             retryButton.centerYAnchor.constraint(equalTo: view.centerYAnchor),
         ])
-        reloadReader()
+        bundleServer = BundledReader(identity: identityJSON())
+        bundleServer?.start { [weak self] error in
+            if let error = error { self?.handleFailure(error) } else { self?.reloadReader() }
+        }
     }
 
     /// 安装标识保留于本应用沙盒，只注入正式站点的主页面，不包含密钥。
-    private func identityScript() -> WKUserScript {
+    private func identityJSON() -> String {
         let key = "reader.installationID"
         let installation = UserDefaults.standard.string(forKey: key) ?? UUID().uuidString.lowercased()
         UserDefaults.standard.set(installation, forKey: key)
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
-        let device: [String: String] = [
+        let apiBase = UserDefaults.standard.string(forKey: "reader.apiBase") ?? "https://www.wenyi-tech.cn"
+        let device: [String: Any] = [
+            "bundled": true, "apiBase": apiBase,
             "platform": "ios", "fingerprint": "ios-\(installation)",
             "appVersion": "ios-\(version)(\(build))", "osVersion": "iOS \(UIDevice.current.systemVersion)",
         ]
         let json = String(data: try! JSONSerialization.data(withJSONObject: device), encoding: .utf8)!
-        let source = "if(location.origin==='https://www.wenyi-tech.cn'){Object.defineProperty(window,'unlimitedBookNative',{value:Object.freeze(\(json)),writable:false,configurable:false});}"
-        return WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true)
+        return json
     }
 
     @objc private func reloadReader() {
@@ -102,6 +110,7 @@ final class ReaderController: UIViewController, WKNavigationDelegate, WKUIDelega
         handleFailure(error)
     }
     private func handleFailure(_ error: Error) {
+        NSLog("Reader load failed: %@", error.localizedDescription)
         if (error as NSError).code == NSURLErrorCancelled { return }
         indicator.stopAnimating()
         retryButton.isHidden = false
@@ -110,7 +119,7 @@ final class ReaderController: UIViewController, WKNavigationDelegate, WKUIDelega
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
                  decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         guard let url = navigationAction.request.url else { decisionHandler(.cancel); return }
-        if url.scheme == "https" && url.host == readerURL.host {
+        if url.scheme == readerURL.scheme && url.host == readerURL.host && url.port == readerURL.port {
             decisionHandler(.allow)
         } else if navigationAction.navigationType == .linkActivated {
             decisionHandler(.cancel)

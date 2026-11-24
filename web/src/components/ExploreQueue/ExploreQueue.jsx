@@ -8,14 +8,14 @@ import { useAppState } from '../../contexts/AppStateContext.jsx';
  * 胶囊形状，显示"探索任务/探索结果 (done/total)"，有呼吸光晕
  * 位置由父层（App.jsx）的 CSS 决定（右上角）
  */
-export function ExploreQueueBtn({ open, onToggle }) {
+export function ExploreQueueBtn({ jobs, open, onToggle }) {
   const { state } = useAppState();
-  const queue = state.exploreQueue;
+  const queue = [...state.exploreQueue, ...jobs];
   if (queue.length === 0) return null;
 
   const total     = queue.length;
   const doneCount = queue.filter((t) => t.status === 'done').length;
-  const hasActive = queue.some((t) => t.status === 'loading');
+  const hasActive = queue.some((t) => !['done','failed'].includes(t.status));
   const hasDone   = doneCount > 0;
 
   const label      = hasActive ? '探索任务' : '探索结果';
@@ -31,6 +31,8 @@ export function ExploreQueueBtn({ open, onToggle }) {
       style={{ '--accent': accentColor, '--border': borderColor, '--bg': cardBg, '--text': textColor, '--glow': glowColor }}
       onClick={onToggle}
       aria-label="探索队列"
+      aria-expanded={open}
+      aria-controls="explore-queue-panel"
       id="btn-explore-queue"
     >
       {/* 呼吸光晕 */}
@@ -50,20 +52,32 @@ export function ExploreQueueBtn({ open, onToggle }) {
 /**
  * ExploreQueuePanel — 对应 Android ExploreQueuePanel.kt
  */
-export function ExploreQueuePanel({ open, onClose, onNavigate, onRetry }) {
+export function ExploreQueuePanel({ knowledge, open, onClose, onNavigate, onRetry }) {
   const { state, dispatch } = useAppState();
   const queue = state.exploreQueue;
+  const panel = useRef(null);
+  const total = queue.length + knowledge.jobs.length;
+  useEffect(() => {
+    if (!open) return;
+    if (!total) { onClose(); return; }
+    const outside = e => {
+      if (!panel.current?.contains(e.target) && !e.target.closest?.('#btn-explore-queue')) onClose();
+    };
+    const escape = e => { if (e.key === 'Escape') { onClose(); document.getElementById('btn-explore-queue')?.focus(); } };
+    document.addEventListener('pointerdown', outside);
+    document.addEventListener('keydown', escape);
+    return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape); };
+  }, [open, total, onClose]);
 
   const dismiss = useCallback((id) => {
     dispatch({ type: 'REMOVE_EXPLORE_TASK', id });
   }, [dispatch]);
 
-  if (!open || queue.length === 0) return null;
+  if (!open || !total) return null;
 
   return (
     <>
-      <div className={styles.backdrop} onClick={onClose} />
-      <div className={`${styles.panel} glass-strong`} id="explore-queue-panel">
+      <div ref={panel} role="region" aria-label="探索队列" className={`${styles.panel} glass-strong`} id="explore-queue-panel">
         <div className={styles.header}>
           <div className={styles.headerTitle}>
             <Icon name="sparkles" size={15} color="#818cf8" />
@@ -75,6 +89,17 @@ export function ExploreQueuePanel({ open, onClose, onNavigate, onRetry }) {
         </div>
 
         <ul className={styles.taskList}>
+          {knowledge.jobs.map(job => {
+            const waiting = job.status === 'paused' && job.error && !knowledge.safe;
+            const loading = job.status === 'running';
+            const task = {id:job.id, bookTitle:job.input.query, pageId:job.assetKey,
+              status: loading ? 'loading' : job.status,
+              sourcePageTitle:loading ? '正在生成' : job.status === 'done' ? '已完成' : job.error || '待执行'};
+            return <TaskItem key={job.id} task={task} progress={loading || waiting}
+              canRetry={!knowledge.safe && !loading && job.status !== 'done'}
+              onRetry={()=>knowledge.retryJob(job)} onDismiss={knowledge.removeJob}
+              onNavigate={()=>knowledge.openJob(job.assetKey)} />;
+          })}
           {queue.map((task) => (
             <TaskItem
               key={task.id}
@@ -94,7 +119,7 @@ export function ExploreQueuePanel({ open, onClose, onNavigate, onRetry }) {
 }
 
 /** 单条任务行 */
-function TaskItem({ task, onDismiss, onNavigate, onRetry }) {
+function TaskItem({ task, onDismiss, onNavigate, onRetry, canRetry = task.status === 'failed', progress = task.status === 'loading' }) {
   const done    = task.status === 'done';
   const failed  = task.status === 'failed';
   const loading = task.status === 'loading';
@@ -112,6 +137,7 @@ function TaskItem({ task, onDismiss, onNavigate, onRetry }) {
         <p className={styles.taskSub}>
           {task.sourcePageTitle || '—'}
         </p>
+        {progress && <span className={styles.progress} role="progressbar" aria-label={`${task.bookTitle || task.label}：正在生成`} />}
       </div>
 
       <div className={styles.taskActions}>
@@ -123,7 +149,7 @@ function TaskItem({ task, onDismiss, onNavigate, onRetry }) {
             查看
           </button>
         )}
-        {failed && (
+        {canRetry && (
           <button
             className={styles.taskRetryBtn}
             onClick={() => onRetry?.(task.id)}
@@ -136,7 +162,7 @@ function TaskItem({ task, onDismiss, onNavigate, onRetry }) {
             className="btn-icon"
             style={{ width: 26, height: 26 }}
             onClick={() => onDismiss(task.id)}
-            aria-label="关闭"
+            aria-label="移除任务"
           >
             <Icon name="close" size={12} />
           </button>

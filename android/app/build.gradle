@@ -48,8 +48,8 @@ android {
         phone {
             dimension "device"
             applicationIdSuffix ".phone"
-            versionCode 147
-            versionName "1.0.147"
+            versionCode 148
+            versionName "1.0.148"
             versionNameSuffix "-phone"
             if (phoneSigningFile.exists()) signingConfig signingConfigs.phoneRelease
             buildConfigField "boolean", "PHONE_UI", "true"
@@ -115,3 +115,23 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
 }
+
+
+// 本地构建同一套阅读界面到 APK；不上传、不发布。
+def knowledgeAssets = layout.buildDirectory.dir("generated/knowledge-assets")
+tasks.register("buildKnowledgeReader", Exec) {
+    workingDir rootProject.file("../web")
+    commandLine "pnpm", "build"
+    inputs.dir(rootProject.file("../web/src"))
+    inputs.dir(rootProject.file("../web/public"))
+    inputs.file(rootProject.file("../web/vite.config.js"))
+    inputs.file(rootProject.file("../web/offline-plugin.js"))
+    outputs.dir(rootProject.file("../web/dist"))
+}
+tasks.register("copyKnowledgeReader", Copy) {
+    dependsOn "buildKnowledgeReader"
+    from rootProject.file("../web/dist")
+    into knowledgeAssets.map { it.dir("knowledge-reader") }
+}
+android.sourceSets.main.assets.srcDir(knowledgeAssets)
+tasks.named("preBuild").configure { dependsOn "copyKnowledgeReader" }

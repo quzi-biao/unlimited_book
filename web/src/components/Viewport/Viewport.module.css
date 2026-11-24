@@ -23,6 +23,49 @@
 }
 .imgVisible { opacity: 1; }
 
+.childRegionLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.childRegion {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 0;
+  border: 2px solid rgba(20, 184, 166, 0.92);
+  border-radius: 3px;
+  background: rgba(20, 184, 166, 0.08);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.childRegion:hover,
+.childRegion:focus-visible {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.14);
+  outline: none;
+}
+
+.childRegionLabel {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  max-width: calc(100% - 4px);
+  overflow: hidden;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: rgba(16, 30, 34, 0.86);
+  color: white;
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 .imgLoading {
   position: absolute;
   inset: 0;

@@ -65,9 +65,9 @@ const initialState = {
   settingsOpen:     false,
   shopOpen:         false,
   isSelecting:      false,
-  exploreQueue:     loadQueue(),  // ← 启动时从 localStorage 恢复
+  exploreQueue:     [],  // ← 启动时从 localStorage 恢复
   sessionRestored:  false,
-  ...loadSession(),
+
 };
 
 function reducer(state, action) {
@@ -124,23 +124,30 @@ function reducer(state, action) {
   }
 }
 
-export function AppStateProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
+export function AppStateProvider({ children, deviceShelf = true, initialShelfOpen = false, openForTreePanel = false }) {
+  const [state, dispatch] = useReducer(reducer, initialState, base => ({
+    ...(deviceShelf ? { ...base, ...loadSession(), exploreQueue: loadQueue() } : base),
+    shelfOpen: initialShelfOpen,
+  }));
+
+  useEffect(() => {
+    if (openForTreePanel) dispatch({ type: 'SET_SHELF', open: true });
+  }, [openForTreePanel]);
 
   /** 设置当前页面，同步持久化到 localStorage */
   const setCurrentPage = useCallback((bookId, bookTitle, pageId, imageUrl) => {
     dispatch({ type: 'SET_CURRENT_PAGE', bookId, bookTitle, pageId, imageUrl });
-    saveSession(bookId, bookTitle, pageId, imageUrl);
-  }, []);
+    if (deviceShelf) saveSession(bookId, bookTitle, pageId, imageUrl);
+  }, [deviceShelf]);
 
   /** 队列变化时持久化（对应 Android persist()） */
   useEffect(() => {
-    saveQueue(state.exploreQueue);
-  }, [state.exploreQueue]);
+    if (deviceShelf) saveQueue(state.exploreQueue);
+  }, [deviceShelf, state.exploreQueue]);
 
   useEffect(() => {
-    if (!state.currentBookId) localStorage.removeItem(SESSION_KEY);
-  }, [state.currentBookId]);
+    if (deviceShelf && !state.currentBookId) localStorage.removeItem(SESSION_KEY);
+  }, [deviceShelf, state.currentBookId]);
 
   const value = { state, dispatch, setCurrentPage };
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

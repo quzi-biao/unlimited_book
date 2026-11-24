@@ -1,9 +1,11 @@
 import { readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const LOCAL_PATHS = [
   ['/api/local-assets/', 'LOCAL_ASSET_DIR'],
   ['/api/local-uploads/', 'LOCAL_UPLOAD_DIR'],
+  ['/knowledge/', 'KNOWLEDGE_ASSET_DIR'],
 ];
 
 /**
@@ -18,7 +20,8 @@ export async function readImageBuffer(imageUrl) {
   const local = LOCAL_PATHS.find(([prefix]) => imageUrl.startsWith(prefix));
   if (local) {
     const [prefix, envName] = local;
-    if (!process.env[envName]) {
+    const directory = process.env[envName] || (envName === 'KNOWLEDGE_ASSET_DIR' ? fileURLToPath(new URL('../../../web/public/knowledge', import.meta.url)) : null);
+    if (!directory) {
       throw Object.assign(new Error('当前服务未启用本地图片目录'), { status: 400 });
     }
     let filename;
@@ -31,7 +34,7 @@ export async function readImageBuffer(imageUrl) {
       throw Object.assign(new Error('本地图片地址无效'), { status: 400 });
     }
     try {
-      const root = await realpath(process.env[envName]);
+      const root = await realpath(directory);
       const file = await realpath(path.join(root, filename));
       if (path.dirname(file) !== root) {
         throw Object.assign(new Error('本地图片地址超出资源目录'), { status: 400 });

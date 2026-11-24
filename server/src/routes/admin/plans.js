@@ -38,17 +38,18 @@ router.get('/', async (req, res, next) => {
  */
 router.post('/', async (req, res, next) => {
   try {
-    const { name, price, points, description, isActive = true, sortOrder = 0 } = req.body;
+    const { name, price, points = 0, monthlyAllowance = 0, description, isActive = true, sortOrder = 0 } = req.body;
 
     if (!name)   return res.status(400).json({ error: '套餐名称不能为空' });
     if (!price || price <= 0) return res.status(400).json({ error: '价格必须大于 0（单位：分）' });
-    if (!points || points <= 0) return res.status(400).json({ error: '点数必须大于 0' });
+    if (!Number.isInteger(monthlyAllowance) || monthlyAllowance < 0 || monthlyAllowance > 100000 || !Number.isInteger(points) || points < 0 || points === 0 && monthlyAllowance === 0) return res.status(400).json({ error: '请设置有效点数或月度生成额度' });
 
     const plan = await prisma.plan.create({
       data: {
         name,
         price: parseInt(price, 10),
         points: parseInt(points, 10),
+        monthlyAllowance,
         descriptionJson: description ?? null,
         isActive,
         sortOrder: parseInt(sortOrder, 10),
@@ -68,9 +69,13 @@ router.post('/', async (req, res, next) => {
 router.patch('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, price, points, description, isActive, sortOrder } = req.body;
+    const { name, price, points, monthlyAllowance, description, isActive, sortOrder } = req.body;
 
     const data = {};
+    if (monthlyAllowance !== undefined) {
+      if (!Number.isInteger(monthlyAllowance) || monthlyAllowance < 0 || monthlyAllowance > 100000) return res.status(400).json({error:'月度额度无效'});
+      data.monthlyAllowance = monthlyAllowance;
+    }
     if (name        !== undefined) data.name          = name;
     if (price       !== undefined) data.price         = parseInt(price, 10);
     if (points      !== undefined) data.points        = parseInt(points, 10);

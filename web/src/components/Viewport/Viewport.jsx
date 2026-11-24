@@ -24,9 +24,11 @@ import styles from './Viewport.module.css';
  * 4. 点击圆点 → 打开对应标注的 callout（支持多标注 tabs）
  * 5. exploredPageId 变化时 callout 同步更新
  */
-export function Viewport({ onToast, onExpandRegion, onToggleToolbar, ttsState, ttsSrcId, onPlayAnnotation, onCalloutChange, onImageFrameChange }) {
-  const { state, dispatch, setCurrentPage } = useAppState();
-  const { currentImageUrl, currentPageId, bookFlat, currentBookId, currentBookTitle } = state;
+export function Viewport({ treePage, safe, onTreeCrop, onOpenShelf, onToast, onExpandRegion, onToggleToolbar, ttsState, ttsSrcId, onPlayAnnotation, onCalloutChange, onImageFrameChange }) {
+  const { state, dispatch, setCurrentPage: selectLegacy } = useAppState();
+  const setCurrentPage = treePage?.select || selectLegacy;
+  const { currentImageUrl, currentPageId, bookFlat, currentBookId, currentBookTitle } = treePage || state;
+  const currentTreePage = treePage ? bookFlat.find(page => page.id === currentPageId) : null;
 
   const containerRef = useRef(null);
   const imgRef       = useRef(null);
@@ -77,11 +79,11 @@ export function Viewport({ onToast, onExpandRegion, onToggleToolbar, ttsState, t
 
   // ── 加载标注列表 ─────────────────────────────────────────
   useEffect(() => {
-    if (!currentPageId) { setAnnotations([]); return; }
+    if (treePage || !currentPageId) { setAnnotations([]); return; }
     getAnnotations(currentPageId)
       .then((r) => setAnnotations(r.annotations || []))
       .catch(() => {});
-  }, [currentPageId]);
+  }, [currentPageId, !!treePage]);
 
   // ── callout 与最新 annotations 同步（对应 syncCalloutWithLatestAnnotations）──
   useEffect(() => {
@@ -99,7 +101,7 @@ export function Viewport({ onToast, onExpandRegion, onToggleToolbar, ttsState, t
   useEffect(() => {
     const onKey = (e) => {
       if (!bookFlat.length || !currentPageId) return;
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (document.querySelector('[aria-modal="true"]') || e.target.closest?.('input, textarea, select, [contenteditable="true"]')) return;
       if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
       e.preventDefault();
       const idx  = bookFlat.findIndex((p) => p.id === currentPageId);
@@ -219,6 +221,13 @@ export function Viewport({ onToast, onExpandRegion, onToggleToolbar, ttsState, t
     const normH = nr.y2 - nr.y1;
     if (normW < 0.02 || normH < 0.02) { setSelection(null); return; }
 
+    if (treePage) {
+      setSelection(null);
+      clickHandledRef.current = true;
+      if (!safe) onTreeCrop({x:nr.x1, y:nr.y1, w:normW, h:normH});
+      return;
+    }
+
     // ── 检查是否重复框选（findDuplicate）─────────────────
     const dup = findDuplicate({ x: nr.x1, y: nr.y1, w: normW, h: normH }, annotations);
     if (dup) {
@@ -291,7 +300,7 @@ export function Viewport({ onToast, onExpandRegion, onToggleToolbar, ttsState, t
         onToast?.({ type: 'error', message: err.message || '识别失败' });
       }
     }
-  }, [isDragging, selection, currentImageUrl, currentPageId, annotations, openAnnotationCallout, onPlayAnnotation, onToast]);
+  }, [isDragging, selection, currentImageUrl, currentPageId, treePage, safe, onTreeCrop, annotations, openAnnotationCallout, onPlayAnnotation, onToast]);
 
   /** 深入探索（对应 Android onDeepExplore） */
   const handleExpandRegion = useCallback(() => {
@@ -321,11 +330,11 @@ export function Viewport({ onToast, onExpandRegion, onToggleToolbar, ttsState, t
       <div className={styles.empty}>
         <div className={styles.emptyInner}>
           <AppLogo size={72} className={styles.emptyIcon} />
-          <h2 className={styles.emptyTitle}>输入主题，开启探索</h2>
+          <h2 className={styles.emptyTitle}>{safe ? '打开书架，开启探索' : '输入主题，开启探索'}</h2>
           <p className={styles.emptyDesc}>
-            在下方搜索框输入任何科普话题<br />
-            AI 将为你生成一幅精美的科普图册
+            从书架选一本图册，或在下方搜索感兴趣的话题
           </p>
+          <button className="btn btn-ghost shelf-start" onClick={onOpenShelf}>打开书架</button>
         </div>
       </div>
     );
@@ -363,7 +372,7 @@ export function Viewport({ onToast, onExpandRegion, onToggleToolbar, ttsState, t
         <img
           ref={imgRef}
           src={currentImageUrl}
-          alt="AI 生成的科普图册"
+          alt={treePage ? bookFlat.find(p=>p.id===currentPageId)?.title : "AI 生成的科普图册"}
           className={`${styles.img} ${imgLoaded ? styles.imgVisible : ''}`}
           onLoad={() => setImgLoaded(true)}
           draggable={false}
@@ -381,6 +390,16 @@ export function Viewport({ onToast, onExpandRegion, onToggleToolbar, ttsState, t
             onDotClick={handleAnnotationDotClick}
           />
         )}
+
+        {imgLoaded && currentTreePage?.childRegions?.length > 0 && <div className={styles.childRegionLayer}>
+          {currentTreePage.childRegions.map(region => <button key={region.childNodeId} className={styles.childRegion}
+            style={{ left: `${region.x * 100}%`, top: `${region.y * 100}%`, width: `${region.w * 100}%`, height: `${region.h * 100}%` }}
+            aria-label={`打开子节点：${region.label}`} title={`打开：${region.label}`}
+            onMouseDown={event => event.stopPropagation()} onMouseUp={event => event.stopPropagation()}
+            onClick={event => { event.stopPropagation(); setCurrentPage(currentBookId, currentBookTitle, region.childKey); }}>
+            <span className={styles.childRegionLabel}>{region.label}</span>
+          </button>)}
+        </div>}
 
         {/* 框选框 */}
         {selection && imgRef.current && (

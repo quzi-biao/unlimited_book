@@ -19,7 +19,7 @@ async function request(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, { ...options, headers });
   const data = await res.json().catch(() => ({}));
 
-  if (res.status === 401) {
+  if (res.status === 401 && path !== '/auth/login') {
     localStorage.removeItem('admin_token');
     window.location.href = '/admin/login';
     throw new Error('登录已过期');

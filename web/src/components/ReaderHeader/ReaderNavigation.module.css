@@ -24,6 +24,16 @@
   white-space: nowrap;
 }
 
+.explanationButton {
+  composes: action from './ReaderHeaderChrome.module.css';
+  flex-shrink: 0;
+  gap: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 @media (max-width: 540px) {
+  .navigation { grid-column: 1 / -1; grid-row: 1; }
   .titleButton { font-size: 12px; }
+  .explanationButton { padding: 0 9px; font-size: 12px; gap: 4px; }
 }

@@ -14,7 +14,7 @@ import styles from './ToolBar.module.css';
  *   - 单击空白页面时 hidden 状态淡入淡出（由父组件控制 hidden prop）
  *   - 搜索框 focus 时展开，失焦时收起
  */
-export function ToolBar({ onGenerate, onToast, hidden, playbackControl, imageWidth }) {
+export function ToolBar({ onSearch, safe, onGenerate, onToast, hidden, playbackControl, imageWidth }) {
   const [query, setQuery]       = useState('');
   const [generating, setGenerating] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -25,9 +25,11 @@ export function ToolBar({ onGenerate, onToast, hidden, playbackControl, imageWid
     if (!q || generating) return;
     setGenerating(true);
     try {
+      if (onSearch) { await onSearch(q); } else {
       const { existing } = await findTopicBook(q);
       const result = existing || await generateImage(q);
       onGenerate?.(result, q);
+      }
       setQuery('');
       inputRef.current?.blur();
     } catch (err) {
@@ -35,7 +37,7 @@ export function ToolBar({ onGenerate, onToast, hidden, playbackControl, imageWid
     } finally {
       setGenerating(false);
     }
-  }, [query, generating, onGenerate, onToast]);
+  }, [query, generating, onGenerate, onSearch, onToast]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -59,7 +61,7 @@ export function ToolBar({ onGenerate, onToast, hidden, playbackControl, imageWid
           ref={inputRef}
           className={styles.search}
           type="text"
-          placeholder="探索新话题…"
+          placeholder={safe ? "搜索公共知识树…" : "探索新话题…"}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}

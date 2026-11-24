@@ -8,7 +8,7 @@ const REVISION_KEY = 'flipbook_content_revision';
  */
 export async function syncContentRevision({ storage = localStorage, fetcher = fetch } = {}) {
   try {
-    const response = await fetcher('/api/health', { cache: 'no-store', signal: AbortSignal.timeout(5000) });
+    const response = await fetcher(`${globalThis.window?.unlimitedBookNative?.apiBase || ''}/api/health`, { cache: 'no-store', signal: AbortSignal.timeout(5000) });
     if (!response.ok) return false;
     const { contentRevision } = await response.json();
     if (typeof contentRevision !== 'string' || !contentRevision || storage.getItem(REVISION_KEY) === contentRevision) return false;

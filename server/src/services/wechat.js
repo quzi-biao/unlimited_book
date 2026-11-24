@@ -172,4 +172,7 @@ async function refundOrder(outTradeNo, outRefundNo, totalAmount, refundAmount, r
   return result;
 }
 
-export { createNativeOrder, verifyAndDecodeNotify, queryOrder, refundOrder };
+/** 查询已受理退款，不再次创建退款申请。 */
+async function queryRefund(outRefundNo) { return getWxPay().find_refunds(outRefundNo); }
+
+export { createNativeOrder, verifyAndDecodeNotify, queryOrder, refundOrder, queryRefund };

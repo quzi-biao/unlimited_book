@@ -11,19 +11,21 @@ import { ShopPage } from './components/ShopPage/ShopPage.jsx';
 import { ToastContainer } from './components/common/Toast.jsx';
 import { ExploreQueuePanel } from './components/ExploreQueue/ExploreQueue.jsx';
 import { ReaderHeader } from './components/ReaderHeader/ReaderHeader.jsx';
-import { expandRegion, cropRegion } from './api/ai.js';
-import { getBooks, getPages, getPage, getBook } from './api/books.js';
+import { expandRegion, cropRegion, generateImage } from './api/ai.js';
+import { getBooks, getPages, getPage, getBook, findTopicBook } from './api/books.js';
 import { updateAnnotation, getAnnotations } from './api/annotations.js';
 import { AppLogo } from './components/common/Icons.jsx';
 import { LoadingSpinner } from './components/common/LoadingSpinner.jsx';
 import { useTtsPlayback } from './hooks/useTtsPlayback.js';
 import { useReadingViewport } from './hooks/useReadingViewport.js';
-import { useBrowseTopic } from './hooks/useBrowseTopic.js';
 import styles from './App.module.css';
+import { useTreePage } from './knowledge/useTreePage.js';
+import { speakLocally } from './knowledge/media.js';
 
 let toastIdSeq = 0;
 
-export default function App() {
+export default function App({ knowledge }) {
+  const treePage = useTreePage(knowledge);
   const readingViewportRef = useReadingViewport();
   const { state, dispatch, setCurrentPage } = useAppState();
   const { loading: authLoading, error: authError, initAuth } = useAuth();
@@ -36,7 +38,7 @@ export default function App() {
   const ttsActive = tts.uiState.playbackState !== 'idle';
 
   // 探索队列面板
-  const [queueOpen, setQueueOpen] = useState(false);
+  const {queueOpen, setQueueOpen} = knowledge;
 
   // Toolbar 隐藏状态（单击页面时切换）
   const [toolbarHidden, setToolbarHidden] = useState(false);
@@ -55,8 +57,8 @@ export default function App() {
   // 同理稳定 onToggleToolbar，防止 Viewport 里 handleClick/handleMouseUp
   // 因 TTS ticker 重渲染而持有 stale closure 导致切换失效。
   const handleToggleToolbar = useCallback(() => {
-    if (state.currentImageUrl) setToolbarHidden((v) => !v);
-  }, [state.currentImageUrl]);
+    if (treePage || state.currentImageUrl) setToolbarHidden((v) => !v);
+  }, [state.currentImageUrl, treePage]);
 
   const addToast = useCallback((toast) => {
     const id = ++toastIdSeq;
@@ -243,7 +245,7 @@ export default function App() {
           pageId:         result.pageId,
           imageUrl:       result.imageUrl,
           bookId,
-          label:          result.pageTitle || label,
+          label:          result.pageTitle || desc || '深入探索',
           annotationId,
           exploredPageId: result.pageId,
         },
@@ -269,7 +271,7 @@ export default function App() {
     handleExpandRegion({ ...task.payload, _isRetry: taskId });
   }, [state.exploreQueue, handleExpandRegion, dispatch]);
 
-  const handleBrowseTopic = useBrowseTopic({ state, dispatch, setCurrentPage, setQueueOpen, addToast });
+
 
   /**
    * 页面刷新后恢复执行 loading 状态的任务
@@ -342,6 +344,7 @@ export default function App() {
 
   /** 从探索队列跳转到已生成的页面 */
   const handleQueueNavigate = useCallback((pageId, imageUrl, bookId) => {
+    knowledge.closeNode();
     setCurrentPage(bookId ?? state.currentBookId, state.currentBookTitle, pageId, imageUrl);
     // 刷新 bookFlat
     const bid = bookId ?? state.currentBookId;
@@ -354,7 +357,7 @@ export default function App() {
 
 
   /* ── 认证加载中 ─────────────────────────────────────────── */
-  if (authLoading) {
+  if (authLoading && !knowledge.snapshot) {
     return (
       <div className={styles.fullCenter}>
         <div className={styles.starfield} />
@@ -368,7 +371,7 @@ export default function App() {
     );
   }
 
-  if (authError) {
+  if (authError && !knowledge.snapshot) {
     return (
       <div className={styles.fullCenter}>
         <div className={styles.errorBox}>
@@ -380,6 +383,40 @@ export default function App() {
     );
   }
 
+  /** 新内容沿用底部话题输入、顶部书名和解读入口。 */
+  function showPanel(name) {
+    for (const type of ['SET_SHELF','SET_PAGETREE','SET_EXPLANATION','SET_SETTINGS']) dispatch({type, open:false});
+    setToolbarHidden(false);
+    if (name === 'tree') dispatch({type:'SET_SHELF',open:true});
+    knowledge.openPanel(name);
+  }
+  /** 关闭抽屉时清除知识树视图，避免下次误恢复成半开状态。 */
+  function closeShelf() {
+    dispatch({type:'SET_SHELF',open:false});
+    if (knowledge.treeOpen) knowledge.openPanel(null);
+  }
+  /** 底部输入总是打开独立话题；旧书按书名复用，公共树按根节点复用。 */
+  async function searchTopic(query) {
+    const nodes = knowledge.snapshot.nodes;
+    let prepared = false;
+    if (knowledge.deviceShelf && navigator.onLine) {
+      const lookup = await findTopicBook(query);
+      if (lookup.existing) {
+        knowledge.closeNode();
+        return handleGenerate(lookup.existing, query);
+      }
+      prepared = lookup.prepared;
+    }
+    const root = nodes.find(n => n.globalNodeId && n.treeId === knowledge.snapshot.profile.selectedTreeId && !n.parentKey && n.asset.title === query);
+    if (root) return knowledge.openNode(root);
+    if (knowledge.safe) { showPanel('tree'); addToast({type:'info',message:'请从公共知识树选择已发布的页面'}); return; }
+    if (prepared) {
+      const result = await generateImage(query);
+      knowledge.closeNode();
+      return handleGenerate(result, query);
+    }
+    return knowledge.explore({query,action:'text'});
+  }
   /* ── 主界面 ─────────────────────────────────────────────── */
   const hasExplanation = state.explanationOpen;
 
@@ -399,6 +436,10 @@ export default function App() {
         onClick={undefined}
       >
         <Viewport
+          key={treePage ? 'knowledge' : 'original'}
+          treePage={treePage} safe={knowledge.safe}
+          onOpenShelf={() => dispatch({type:'SET_SHELF',open:true})}
+          onTreeCrop={region => knowledge.explore({action:'crop', parentKey:treePage.currentPageId, region, query:'从框选区域继续探索'})}
           onImageFrameChange={setReaderImageWidth}
           onToast={addToast}
           onExpandRegion={handleExpandRegion}
@@ -420,16 +461,18 @@ export default function App() {
       </main>
 
       {/* 面板 */}
-      <ShelfPanel onToast={addToast} onSelectTopic={handleBrowseTopic} />
+      <ShelfPanel knowledge={knowledge}
+        onLearning={() => showPanel('learning')} onAccount={() => showPanel('account')}
+        onClose={closeShelf} onToast={addToast} />
       <PageTreePanel onToast={addToast} />
-      <ExplanationPanel onToast={addToast} />
-      <SettingsPage onToast={addToast} />
+      <ExplanationPanel asset={knowledge.node?.asset} preferences={knowledge.preferences} onToast={addToast} />
+      <SettingsPage onKnowledgeAccount={() => showPanel('account')} onToast={addToast} />
       <ShopPage onToast={addToast} />
 
       {/* 导航位于左上角，账户位于右上角，探索任务另起一行。 */}
-      <ReaderHeader hidden={toolbarHidden} queueOpen={queueOpen}
-        onQueueToggle={() => setQueueOpen((v) => !v)} onCloseQueue={() => setQueueOpen(false)} />
-      <ExploreQueuePanel
+      <ReaderHeader knowledge={knowledge} onNodePanel={showPanel} treePage={treePage} onTree={() => showPanel('tree')} jobs={knowledge.jobs} hidden={toolbarHidden} queueOpen={queueOpen}
+        onQueueToggle={() => setQueueOpen(!queueOpen)} onCloseQueue={() => setQueueOpen(false)} />
+      <ExploreQueuePanel knowledge={knowledge}
         open={queueOpen && !toolbarHidden && !state.settingsOpen && !state.shopOpen}
         onClose={() => setQueueOpen(false)}
         onNavigate={handleQueueNavigate}
@@ -441,6 +484,10 @@ export default function App() {
 
       {/* 底部工具栏（最后渲染，确保在面板之上） */}
       <ReaderToolBar
+        onSearch={searchTopic} safe={knowledge.safe} treePage={treePage}
+        onTreeSpeech={()=>{const asset=knowledge.node.asset; const lang=knowledge.preferences.language || asset.language;
+          if (!speakLocally(asset.explanations[lang] || asset.explanations[asset.language],lang)) {
+            setQueueOpen(false);dispatch({type:'SET_EXPLANATION',open:true});}}}
         imageWidth={readerImageWidth}
         onGenerate={handleGenerate}
         tts={tts}

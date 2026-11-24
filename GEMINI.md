@@ -59,3 +59,8 @@ config/
 - 前端：`VITE_` 前缀，保存在 `.env`
 - 后端：无前缀，保存在 `server/.env`
 - 敏感 key（Gemini API key）只在 `server/.env` 中，不在前端暴露
+
+## 产品参考资料
+
+- 用户于 2026-11-19 提供《无限之书产品企划书》（原文：老许，2026-08-26），产品定位、原则、模块与待讨论项已记在 `docs/product-planning-notes.md`。
+- 这份备忘用于后续产品讨论和开发参考；其中规划不代表已经实现，具体实施以用户当次任务为准。原有 `docs/project-plan.md` 保留。

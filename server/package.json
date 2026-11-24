@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch src/index.js",
+    "dev:knowledge": "node --import ./scripts/local-knowledge-models.js --watch src/index.js",
     "start": "node src/index.js",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
@@ -11,7 +12,8 @@
     "db:seed": "node scripts/seed-prompts.js",
     "db:seed:admin": "node scripts/seed.js",
     "oss:cors": "node scripts/setup-oss-cors.js",
-    "oss:fix-acl": "node scripts/fix-object-acl.js"
+    "oss:fix-acl": "node scripts/fix-object-acl.js",
+    "test": "node --experimental-vm-modules --test tests/*.test.js tests/knowledge/*.test.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -31,5 +33,8 @@
     "sharp": "^0.34.5",
     "wechatpay-node-v3": "^2.2.1",
     "ws": "^8.21.0"
+  },
+  "prisma": {
+    "schema": "prisma"
   }
 }

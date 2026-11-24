@@ -61,8 +61,8 @@ export default function OrdersPage() {
       content: `确定要对该订单（金额: ${order.amount / 100}元）发起退款吗？退款金额将原路返回给用户。`,
       onOk: async () => {
         try {
-          await adminApi.orders.refund(order.id);
-          message.success('退款请求已提交');
+          const result = await adminApi.orders.refund(order.id);
+          message.success(result.message);
           fetchOrders();
         } catch (err) {
           message.error(err.message);
@@ -107,6 +107,7 @@ export default function OrdersPage() {
       key: 'status',
       render: (_, r) => {
         if (r.status === 'paid') return <Tag color="success">已支付</Tag>;
+        if (r.status === 'refund_pending') return <Tag color="processing">退款处理中</Tag>;
         if (r.status === 'refunded') return <Tag color="error">已退款</Tag>;
         if (r.status === 'cancelled') return <Tag color="default">已取消</Tag>;
         return <Tag color="processing">待支付</Tag>;
@@ -131,9 +132,9 @@ export default function OrdersPage() {
           <Button size="small" type="link" onClick={() => openChannelModal(r)}>
             归属渠道
           </Button>
-          {r.status === 'paid' && (
+          {['paid','refund_pending'].includes(r.status) && (
             <Button size="small" type="text" danger onClick={() => handleRefund(r)}>
-              退款
+              {r.status === 'refund_pending' ? '查询退款' : '退款'}
             </Button>
           )}
         </div>
@@ -147,6 +148,7 @@ export default function OrdersPage() {
         <Select allowClear placeholder="订单状态" style={{ width: 120 }} value={filterStatus} onChange={v => { setFilterStatus(v); setPage(1); fetchOrders(search, v, filterChannel, filterSettlement); }}>
           <Select.Option value="pending">待支付</Select.Option>
           <Select.Option value="paid">已支付</Select.Option>
+          <Select.Option value="refund_pending">退款处理中</Select.Option>
           <Select.Option value="refunded">已退款</Select.Option>
           <Select.Option value="cancelled">已取消</Select.Option>
         </Select>

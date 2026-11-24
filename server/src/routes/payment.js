@@ -1,3 +1,5 @@
+import { handleOrderPaid } from '../services/paymentSettlement.js';
+import { resolveReader, requireAccount } from '../services/knowledge/readerAuth.js';
 /**
  * payment.js — 设备端支付路由
  *
@@ -30,6 +32,7 @@ router.get('/plans', requireDeviceToken, async (req, res, next) => {
         name: true,
         price: true,
         points: true,
+        monthlyAllowance: true,
         descriptionJson: true,
       },
     });
@@ -69,7 +72,7 @@ router.get('/wallet', requireDeviceToken, async (req, res, next) => {
  * Body: { planId: string }
  * Response: { orderId, codeUrl, amount, points }
  */
-router.post('/payment/create', requireDeviceToken, async (req, res, next) => {
+router.post('/payment/create', requireDeviceToken, resolveReader, async (req, res, next) => {
   const deviceId = req.deviceId;
   try {
     const { planId } = req.body;
@@ -77,6 +80,8 @@ router.post('/payment/create', requireDeviceToken, async (req, res, next) => {
 
     const plan = await prisma.plan.findUnique({ where: { id: planId } });
     if (!plan || !plan.isActive) return res.status(404).json({ error: '套餐不存在或已停用' });
+
+    if (plan.monthlyAllowance > 0) requireAccount(req.reader);
 
     // 创建订单记录
     const order = await prisma.order.create({
@@ -86,6 +91,8 @@ router.post('/payment/create', requireDeviceToken, async (req, res, next) => {
         planId: plan.id,
         amount: plan.price,
         points: plan.points,
+        readerProfileId: plan.monthlyAllowance > 0 ? req.reader.id : null,
+        monthlyAllowance: plan.monthlyAllowance,
         status: 'pending',
       },
     });
@@ -373,77 +380,5 @@ router.get('/payment/history', requireDeviceToken, async (req, res, next) => {
     next(err);
   }
 });
-
-// ── 内部：订单支付成功处理（幂等） ─────────────────────────────
-/**
- * 将订单标记为已支付并充值点数（幂等：已 paid 则跳过）
- * @param {string} outTradeNo   Order.id
- * @param {object} wxData       微信支付返回的业务数据
- */
-async function handleOrderPaid(outTradeNo, wxData) {
-  const order = await prisma.order.findUnique({
-    where:   { id: outTradeNo },
-    include: { device: true },
-  });
-
-  if (!order) {
-    console.warn('[payment] 回调订单不存在:', outTradeNo);
-    return;
-  }
-
-  if (order.status === 'paid') {
-    console.log('[payment] 订单已处理，跳过（幂等）:', outTradeNo);
-    return;
-  }
-
-  const channelOrderId = wxData.transaction_id;
-  const deviceId = order.deviceId;
-
-  await prisma.$transaction(async (tx) => {
-    // 更新订单状态
-    await tx.order.update({
-      where: { id: outTradeNo },
-      data:  { status: 'paid', paidAt: new Date() },
-    });
-
-    // 写支付记录
-    await tx.payment.create({
-      data: {
-        orderId:       outTradeNo,
-        channel:       'wechat',
-        channelOrderId,
-        rawResponse:   wxData,
-        paidAt:        new Date(),
-      },
-    });
-
-    // 充值点数：查询或创建钱包，然后充值
-    let wallet = await tx.deviceWallet.findUnique({ where: { deviceId } });
-    if (!wallet) {
-      wallet = await tx.deviceWallet.create({ data: { deviceId, balance: 0 } });
-    }
-
-    const newBalance = wallet.balance + order.points;
-    await tx.deviceWallet.update({
-      where: { deviceId },
-      data:  { balance: newBalance },
-    });
-
-    // 写流水
-    await tx.pointLedger.create({
-      data: {
-        walletId:  wallet.id,
-        deviceId,
-        delta:     order.points,
-        balance:   newBalance,
-        type:      'purchase',
-        refId:     outTradeNo,
-        reason:    `微信支付充值 ${order.points} 点`,
-      },
-    });
-  });
-
-  console.log(`[payment] 订单 ${outTradeNo} 已支付，充值 ${order.points} 点`);
-}
 
 export default router;

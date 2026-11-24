@@ -7,6 +7,7 @@ import {
 } from '@ant-design/icons';
 import './index.css';
 import zhCN from 'antd/locale/zh_CN';
+import KnowledgePage from './pages/KnowledgePage';
 import LoginPage from './pages/LoginPage';
 import DeviceList from './pages/DeviceList';
 import DeviceDetail from './pages/DeviceDetail';
@@ -52,6 +53,7 @@ function AdminLayout() {
   // 高亮当前菜单
   const selectedKey = (() => {
     const p = location.pathname;
+    if (p.startsWith('/admin/knowledge')) return 'knowledge';
     if (p.startsWith('/admin/devices')) return 'devices';
     if (p.startsWith('/admin/topics-list')) return 'topics-list';
     if (p.startsWith('/admin/cache')) return 'cache';
@@ -88,6 +90,7 @@ function AdminLayout() {
       icon: <SettingOutlined />,
       label: '系统管理',
       children: [
+        { key: 'knowledge', label: '公共知识树' },
         { key: 'topics-list', label: '话题列表' },
         { key: 'versions', label: '版本管理' },
         { key: 'voices', label: '音色管理' },
@@ -139,6 +142,7 @@ function AdminLayout() {
         </div>
         <Content className="admin-content">
           <Routes>
+            <Route path="knowledge" element={<KnowledgePage />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="devices" element={<DeviceList />} />
             <Route path="devices/:id" element={<DeviceDetail />} />

@@ -4,10 +4,11 @@ import { useAppState } from '../../contexts/AppStateContext.jsx';
 import { ExploreQueueBtn } from '../ExploreQueue/ExploreQueue.jsx';
 import { Icon } from '../common/Icons.jsx';
 import { ReaderNavigation } from './ReaderNavigation.jsx';
+import { ReaderNodeActions } from '../../knowledge/ReaderNodeActions.jsx';
 import styles from './ReaderHeader.module.css';
 
 /** 顶部左右分别放阅读导航和账户，探索任务另起一行，避免窄屏互相遮挡。 */
-export function ReaderHeader({ hidden, queueOpen, onQueueToggle, onCloseQueue }) {
+export function ReaderHeader({ treePage, onTree, jobs, hidden, queueOpen, onQueueToggle, onCloseQueue, knowledge, onNodePanel }) {
   const { balance, refreshBalance } = useAuth();
   const { state, dispatch } = useAppState();
   const panelOpen = state.settingsOpen || state.shopOpen;
@@ -29,7 +30,10 @@ export function ReaderHeader({ hidden, queueOpen, onQueueToggle, onCloseQueue })
 
   return (
     <div className={styles.header} id="reader-header">
-      {accountVisible && <ReaderNavigation onNavigate={onCloseQueue} />}
+      {accountVisible && <ReaderNavigation treePage={treePage} onTree={onTree} onNavigate={onCloseQueue}>
+        {knowledge?.node && <ReaderNodeActions key={knowledge.node.assetKey} node={knowledge.node}
+          onOpen={onNodePanel} onPrint={knowledge.printNode} onExpand={onCloseQueue} />}
+      </ReaderNavigation>}
       {accountVisible && (
         <section className={styles.account} aria-label="账户与设置">
           <div className={styles.balance} id="display-balance" aria-label={`学习点数余额 ${balance}`}>
@@ -45,7 +49,7 @@ export function ReaderHeader({ hidden, queueOpen, onQueueToggle, onCloseQueue })
         </section>
       )}
       <div className={styles.queue} id="reader-queue-entry">
-        <ExploreQueueBtn open={queueOpen} onToggle={onQueueToggle} />
+        <ExploreQueueBtn jobs={jobs} open={queueOpen} onToggle={onQueueToggle} />
       </div>
     </div>
   );

@@ -1,0 +1,63 @@
+/* 新功能使用阅读器的抽屉和原有的品牌色。 */
+.shelf-start { margin-top: 20px; }
+.shelf-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 650;
+  background: rgba(3, 6, 16, .48);
+}
+.knowledge-app.shelf-dialog {
+  --ink: var(--color-text);
+  --muted: var(--color-text-2);
+  --green: var(--color-gold);
+  --line: var(--color-border);
+  position: absolute;
+  inset: 16px auto 16px 16px;
+  width: min(870px, calc(100% - 32px));
+  height: auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+  font-family: var(--font-sans);
+  background: var(--color-bg-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+.knowledge-app.shelf-dialog.shelf-integrated {
+  position: fixed;
+  inset: 16px 16px 104px;
+  width: min(1480px, calc(100vw - 32px));
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  background: var(--color-bg-2);
+  border: 1px solid var(--color-border);
+}
+.shelf-dialog-header, .shelf-tree-controls { display: flex; align-items: center; gap: 12px; }
+.shelf-dialog-header { justify-content: space-between; }
+.shelf-dialog-header h2 { font-size: var(--text-lg); margin: 0; }
+.shelf-tree-controls { margin: 12px 0; flex-wrap: wrap; }
+.shelf-tree-controls label { font-size: var(--text-sm); margin: 0; }
+.shelf-tree-controls select { margin-left: 6px; }
+.shelf-dialog button, .shelf-dialog select, .shelf-dialog input, .shelf-dialog textarea {
+  background: var(--color-bg-3); border-color: var(--color-border);
+}
+.shelf-dialog button:hover, .shelf-dialog button:focus-visible { background: var(--color-surface-2); color: var(--color-gold); }
+.shelf-dialog .knowledge-panel, .shelf-dialog .knowledge-map, .shelf-dialog .reader-text {
+  background: var(--color-bg); border-color: var(--color-border);
+}
+.shelf-dialog h2, .shelf-dialog h3 { color: var(--color-text); }
+.shelf-dialog .tree-edge.lit, .shelf-dialog .tree-node.lit .node-circle { stroke: var(--color-gold); }
+.shelf-dialog .tree-node.lit .node-circle, .shelf-dialog .lit-dot { fill: #55442b; background: var(--color-gold); }
+.shelf-dialog .node-symbol { fill: var(--color-gold); }
+.shelf-dialog .knowledge-map { min-height: 0; }
+.shelf-dialog .map-scroll { max-height: 54dvh; }
+@media (max-width: 700px) {
+  .knowledge-app.shelf-dialog.shelf-integrated { inset: 8px 8px 88px; width: auto; }
+}
+@media (max-width: 600px) {
+  .knowledge-app.shelf-dialog:not(.shelf-integrated) { inset: 8px; width: auto; padding: 12px; }
+  .shelf-tree-controls { gap: 8px; }
+}

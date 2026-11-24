@@ -74,12 +74,6 @@
 }
 
 /* ─── Panel ─────────────────────────────────────────────────────────────── */
-.backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 299;
-}
-
 .panel {
   position: fixed;
   right: 24px;
@@ -174,6 +168,30 @@
   margin: 2px 0 0;
 }
 .failed .taskSub { color: #f87171; }
+.taskSub { overflow-wrap: anywhere; }
+.progress {
+  display: block;
+  width: 100%;
+  max-width: 180px;
+  height: 4px;
+  margin-top: 5px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--color-border);
+}
+.progress::after {
+  content: '';
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-gold);
+  animation: queueProgress 1.6s ease-in-out infinite alternate;
+}
+@keyframes queueProgress { to { transform: translateX(150%); } }
+@media (prefers-reduced-motion: reduce) {
+  .progress::after { animation: none; transform: translateX(75%); }
+}
 
 .taskActions {
   display: flex;

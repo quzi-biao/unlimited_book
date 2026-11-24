@@ -48,6 +48,8 @@
 
 @media (max-width: 540px) {
   .header { left: 16px; right: 16px; gap: 8px; }
+  .account { grid-column: 1 / -1; grid-row: 2; justify-self: end; }
+  .queue { grid-row: 3; }
   .balance { padding: 0 6px; }
   .button { padding: 0 6px; }
   .rechargeLabel { display: none; }

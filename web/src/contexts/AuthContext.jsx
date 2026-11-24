@@ -68,6 +68,8 @@ export function AuthProvider({ children }) {
   // 启动时初始化
   useEffect(() => {
     initAuth();
+    window.addEventListener('online',initAuth);
+    return () => window.removeEventListener('online',initAuth);
   }, [initAuth]);
 
   // Token 存在后启动心跳（每 60s）

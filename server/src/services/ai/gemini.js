@@ -45,12 +45,20 @@ function extractImageFromCandidates(data) {
  * 文生图：根据 query 生成科普插画（无限之书·暗色调）
  * 根据 IMAGE_PROVIDER 选择使用 gpt-image-2 或 Gemini
  * @param {string} query
+ * @param {object} promptStyle
+ * @param {object} configMap
+ * @param {string} [imageSize]
+ * @param {string} [imageContext] 可选的知识树子主题说明
  * @returns {Promise<string>} base64 data URL
  */
-export async function generateImage(query, promptStyle, configMap, imageSize = DEFAULT_IMAGE_SIZE) {
+export async function generateImage(query, promptStyle, configMap, imageSize = DEFAULT_IMAGE_SIZE, imageContext = '') {
   const provider = (promptStyle?.imageModel || configMap?.model_image_gen || process.env.IMAGE_PROVIDER || 'gptimage').toLowerCase();
 
-  const basePrompt = promptStyle?.topicExploration ? promptStyle.topicExploration.replace(/\$\{query\}/g, query) : query;
+  const template = promptStyle?.topicExploration || query;
+  const hasContextSlot = template.includes('${children}');
+  const contextText = imageContext.trim() ? `\n\n${imageContext.trim()}\n\n` : '';
+  let basePrompt = template.replace(/\$\{query\}/g, query).replace(/\$\{children\}/g, hasContextSlot ? contextText : '');
+  if (!hasContextSlot && contextText) basePrompt += contextText;
   const unified = promptStyle?.unifiedStyle ? `\n\n${promptStyle.unifiedStyle}` : '';
   const finalPrompt = basePrompt + unified;
 

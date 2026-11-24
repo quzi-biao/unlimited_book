@@ -9,7 +9,7 @@ import styles from './SettingsPage.module.css';
  * SettingsPage — 设置抽屉
  * Tab：音色 / 画风 / 账户
  */
-export function SettingsPage({ onToast }) {
+export function SettingsPage({ onKnowledgeAccount, onToast }) {
   const { state, dispatch } = useAppState();
   const [tab, setTab] = useState('voice');
 
@@ -40,7 +40,7 @@ export function SettingsPage({ onToast }) {
         <div className={styles.body}>
           {tab === 'voice'   && <VoiceTab   onToast={onToast} />}
           {tab === 'style'   && <StyleTab   onToast={onToast} />}
-          {tab === 'account' && <AccountTab onToast={onToast} />}
+          {tab === 'account' && <><button className="btn btn-secondary" onClick={onKnowledgeAccount}>我的账号</button><AccountTab onToast={onToast} /></>}
         </div>
       </div>
     </>

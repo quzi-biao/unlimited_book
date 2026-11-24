@@ -1,0 +1,15 @@
+.knowledge-app.shelf-dialog.node-task-dialog{width:min(620px,calc(100% - 32px));height:fit-content;max-height:calc(100dvh - 32px);bottom:auto}
+.node-workspace>header{margin:14px 0 18px;padding-bottom:12px;border-bottom:1px solid var(--color-border)}
+.node-workspace>header h2{font-size:20px;margin:5px 0 0}
+.node-workspace section{margin-top:16px}
+.node-workspace .node-note textarea{min-height:200px}
+.node-workspace .node-learning section+section{margin-top:24px;padding-top:20px;border-top:1px solid var(--color-border)}
+.node-workspace .node-learning input{margin:12px 0}
+.node-workspace .selectable-picture img{max-height:44dvh;width:auto;max-width:100%;margin:auto;border-radius:12px}
+.node-workspace .selectable-picture{width:fit-content;max-width:100%;margin:0 auto}
+.node-workspace .node-delete-confirm{margin:0}
+.node-explanation-audio{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.node-explanation-audio .btn{background:var(--color-bg-3);color:var(--color-text);border:1px solid var(--color-border);padding:7px 12px;border-radius:9px;font-size:12px;cursor:pointer}
+.node-explanation-audio .btn:disabled{opacity:.5;cursor:default}
+.node-explanation-audio audio{width:100%;max-width:100%}
+@media(max-width:600px){.knowledge-app.shelf-dialog.node-task-dialog{width:auto;max-height:calc(100dvh - 16px);inset:8px 8px auto}}

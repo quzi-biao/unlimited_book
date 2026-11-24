@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import prisma from '../../config/db.js';
 import { requireAdmin } from './auth.js';
-import { refundOrder } from '../../services/wechat.js';
+import { requestRefund } from '../../services/paymentRefund.js';
 
 const router = Router();
 router.use(requireAdmin);
@@ -64,46 +64,10 @@ router.patch('/:id', async (req, res, next) => {
   }
 });
 
-// 退款
+/** 申请或查询退款；仅渠道确认成功后原子撤回点数与月额度。 */
 router.post('/:id/refund', async (req, res, next) => {
-  try {
-    const order = await prisma.order.findUnique({
-      where: { id: req.params.id },
-      include: { payment: true },
-    });
-    if (!order) return res.status(404).json({ error: '订单不存在' });
-    if (order.status !== 'paid') return res.status(400).json({ error: '只能对已支付的订单发起退款' });
-    if (!order.payment || order.payment.channel !== 'wechat') {
-      // 非微信订单也允许改状态，因为可能是后台手动或者兜底测试
-      await prisma.order.update({
-        where: { id: order.id },
-        data: { status: 'refunded' },
-      });
-      return res.json({ success: true, message: '系统直接变更为退款状态（非微信订单）' });
-    }
-
-    const outRefundNo = `REFUND_${order.id}`;
-    
-    // 调用微信退款
-    await refundOrder(
-      order.id,
-      outRefundNo,
-      order.amount,
-      order.amount,
-      '管理员后台发起退款'
-    );
-
-    // 修改状态
-    await prisma.order.update({
-      where: { id: order.id },
-      data: { status: 'refunded' },
-    });
-
-    res.json({ success: true, message: '退款成功' });
-  } catch (err) {
-    console.error('[refund]', err);
-    res.status(500).json({ error: err.message || '退款失败' });
-  }
+  try { res.json(await requestRefund(req.params.id)); }
+  catch (error) { next(error); }
 });
 
 export default router;

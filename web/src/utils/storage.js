@@ -3,7 +3,7 @@ const DEVICE_KEY  = 'wuxian_device_id';
 
 /** @returns {string|null} */
 export const getToken    = () => localStorage.getItem(TOKEN_KEY);
-export const setToken    = (v) => localStorage.setItem(TOKEN_KEY, v);
+export const setToken = (v) => localStorage.setItem(TOKEN_KEY, v);
 export const clearToken  = () => localStorage.removeItem(TOKEN_KEY);
 
 /** @returns {string|null} */

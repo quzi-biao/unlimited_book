@@ -6,7 +6,7 @@ FROM node:22-bookworm-slim AS admin-builder
 WORKDIR /build/admin
 
 ARG NPM_REGISTRY=https://registry.npmmirror.com
-RUN corepack enable && COREPACK_NPM_REGISTRY=$NPM_REGISTRY corepack prepare pnpm@10.13.1 --activate
+RUN corepack enable && COREPACK_NPM_REGISTRY=$NPM_REGISTRY corepack prepare pnpm@11.25.0 --activate
 RUN pnpm config set registry $NPM_REGISTRY
 
 COPY admin-frontend/package.json admin-frontend/pnpm-lock.yaml .npmrc* ./
@@ -30,7 +30,7 @@ RUN node -e "require('fs').writeFileSync('/tmp/node-ca.pem', require('tls').root
 WORKDIR /app
 
 ARG NPM_REGISTRY=https://registry.npmmirror.com
-RUN corepack enable && COREPACK_NPM_REGISTRY=$NPM_REGISTRY corepack prepare pnpm@10.13.1 --activate
+RUN corepack enable && COREPACK_NPM_REGISTRY=$NPM_REGISTRY corepack prepare pnpm@11.25.0 --activate
 RUN pnpm config set registry $NPM_REGISTRY
 
 COPY server/package.json server/pnpm-lock.yaml server/pnpm-workspace.yaml ./server/
@@ -46,6 +46,7 @@ RUN --mount=type=cache,id=flipbook-server-pnpm,target=/pnpm/store CI=true pnpm p
 
 COPY server/src ./src
 COPY server/scripts ./scripts
+COPY web/public/knowledge /app/web/public/knowledge
 RUN chmod +x scripts/start.sh
 
 WORKDIR /app

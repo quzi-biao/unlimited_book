@@ -2,6 +2,7 @@ import { Router } from 'express';
 import sharp from 'sharp';
 import { requireAuth } from '../middleware/auth.js';
 import { generateImage, expandWithKnowledge } from '../services/ai/gemini.js';
+import { getDeviceAiConfig } from '../services/ai/deviceConfig.js';
 import { identifyRegion, explainSpot, explainRegionFromUrl, explainRegionFromBase64 } from '../services/ai/gemini-vision.js';
 import { generateTitle, generateTitleFromText, generateRandomTopics } from '../services/ai/gemini-text.js';
 import { DEFAULT_IMAGE_SIZE, resolveImageSize } from '../services/ai/imageSize.js';
@@ -14,30 +15,6 @@ import { buildPromptHash, buildContentHash, buildMd5 } from '../services/hash.js
 import prisma from '../config/db.js';
 import { requirePoints, deductPoints, getPointCost } from '../services/points.js';
 import { checkText } from '../services/wechatSecurity.js';
-
-/**
- * 获取设备绑定的提示词风格和全局模型配置
- */
-async function getDeviceAiConfig(deviceId) {
-  let promptStyle = null;
-  if (deviceId) {
-    const device = await prisma.device.findUnique({
-      where: { id: deviceId },
-      include: { promptStyle: true },
-    });
-    promptStyle = device?.promptStyle;
-  }
-  if (!promptStyle) {
-    promptStyle = await prisma.promptStyle.findFirst({ where: { name: '酷炫科普风' } });
-  }
-
-  const globalConfigs = await prisma.globalConfig.findMany({
-    where: { key: { in: ['model_image_gen', 'model_page_desc', 'model_region_expl'] } }
-  });
-  const configMap = Object.fromEntries(globalConfigs.map(c => [c.key, c.value]));
-
-  return { promptStyle, configMap };
-}
 
 /**
  * 百科话题集合（O(1) 查找）

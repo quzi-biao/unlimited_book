@@ -1,0 +1,46 @@
+.knowledge-app.shelf-dialog.knowledge-tree-dialog{width:min(1380px,calc(100% - 32px))}
+.personal-tree-intro{margin:10px 0 0;color:var(--color-text-2);font-size:13px}
+.personal-tree-source-hint{margin:0 0 12px;color:var(--color-text-2);font-size:12px;line-height:1.6}
+.forest-map.knowledge-map{min-height:0;border-radius:16px;background:radial-gradient(ellipse at 50% 90%,#c8a05a09,transparent 65%),var(--color-bg,#090d1a);border-color:#303746}
+.forest-map .forest-legend{gap:18px;color:var(--color-text-2,#9ca3b4);padding:12px 18px;min-height:55px;flex-wrap:wrap}
+.forest-legend-item{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.forest-map .dark-dot{margin:0;background:#151b29;border-color:#556176}
+.forest-map .lit-dot{background:var(--color-gold,#f0c060);box-shadow:0 0 10px #f0c06035}
+.forest-zoom{display:flex;gap:6px;margin-left:auto}
+.forest-map .forest-zoom button{font-size:12px;padding:3px 10px;border-radius:8px;background:var(--color-bg-3,#141b32);border-color:#30394c;white-space:nowrap}
+.knowledge-map.forest-map .forest-scroll{height:clamp(310px,60dvh,660px);max-height:none;overflow:auto;overscroll-behavior:contain;scrollbar-color:#445066 #0c111e;scrollbar-width:thin;cursor:grab;outline-offset:-3px}
+.forest-scroll.dragging{cursor:grabbing;user-select:none}
+.forest-svg{display:block;margin:0 auto;overflow:hidden;flex-shrink:0}
+.forest-branch,.forest-twig,.personal-tree-trunk,.personal-tree-limb,.personal-tree-roots,.forest-connection{fill:none;stroke:#344052;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.forest-branch.lit,.forest-twig.lit,.personal-tree-trunk.lit,.personal-tree-limb.lit{stroke:#c8a05a}
+.forest-twig{stroke-width:4}
+.personal-tree-trunk{stroke-width:16}
+.personal-tree-limb{stroke-width:7}
+.personal-tree-roots{stroke:#78613e;stroke-width:2.5}
+.forest-connection{stroke:#b1a17f;stroke-width:1.2;stroke-dasharray:5 6;opacity:.65}
+.forest-leaf{fill:#131c2a;stroke:#324055;stroke-width:.9;opacity:.8;pointer-events:none}
+.forest-leaf.lit{fill:#393325;stroke:#7f683d}
+.forest-node{cursor:pointer;outline:none}
+.forest-card{fill:#0c1220;stroke:#45516a;stroke-width:1.1;transition:fill .15s,stroke .15s}
+.forest-node.lit .forest-card{fill:#27272c;stroke:#a8854d}
+.forest-node .forest-node-icon{color:#7e8ca5}
+.forest-node.lit .forest-node-icon{color:#e7bd70}
+.forest-node .forest-title{fill:#a3afc5;font-size:13px}
+.forest-node.lit .forest-title{fill:#ebdfc8}
+.forest-domain{fill:#8692a9;font-size:11px}
+.forest-node.forest-topic .forest-title{font-size:15px}
+.forest-focus{fill:none;stroke:transparent;stroke-width:2}
+.forest-node:hover .forest-card,.forest-node.selected .forest-card{stroke:#f0d7a4;stroke-width:1.8;fill:#2d2c33}
+.forest-node:focus-visible .forest-focus{stroke:#f0c060}
+.forest-opened{fill:#e5ba6b}
+.personal-tree-root rect{fill:#27262d;stroke:#a8854d;stroke-width:1.2}
+.personal-tree-root text{fill:#f0d7a4;font-size:17px}
+.personal-tree-root .personal-tree-caption{fill:#a59780;font-size:11px}
+.forest-hint{display:flex;justify-content:space-between;gap:10px;padding:10px 18px;border-top:1px solid #ffffff08;color:#8793a9;font-size:11px}
+@media(max-width:600px){
+  .knowledge-app.shelf-dialog.knowledge-tree-dialog{width:auto}
+  .forest-map .forest-legend{padding:10px 12px;gap:14px}
+  .forest-zoom{flex:0 0 100%;justify-content:flex-end}
+  .knowledge-map.forest-map .forest-scroll{height:clamp(300px,54dvh,560px)}
+  .forest-hint{padding:10px 12px;flex-wrap:wrap;font-size:10px}
+}

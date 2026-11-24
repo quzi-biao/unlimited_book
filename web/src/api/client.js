@@ -3,9 +3,7 @@
  * 自动注入 Authorization Token，统一错误处理
  */
 
-const BASE = import.meta.env.VITE_API_TARGET
-  ? ''   // 生产：同源，proxy 处理
-  : '';  // 开发：Vite proxy 转发 /api
+const BASE = window.unlimitedBookNative?.apiBase || '';
 
 /**
  * 获取存储的 Token
@@ -26,6 +24,7 @@ async function request(path, options = {}) {
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(localStorage.getItem('knowledge_reader_token') ? { 'X-Reader-Token':localStorage.getItem('knowledge_reader_token') } : {}),
     ...options.headers,
   };
 
@@ -59,6 +58,7 @@ async function requestStream(path, body) {
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(localStorage.getItem('knowledge_reader_token') ? { 'X-Reader-Token':localStorage.getItem('knowledge_reader_token') } : {}),
     },
     body: JSON.stringify(body),
   });

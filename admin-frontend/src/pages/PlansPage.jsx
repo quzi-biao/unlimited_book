@@ -42,7 +42,8 @@ function PlanModal({ open, plan, onClose, onSaved }) {
       const body = {
         name:        values.name,
         price:       Math.round(values.priceYuan * 100), // 元→分
-        points:      values.points,
+        points:      values.points || 0,
+        monthlyAllowance: values.monthlyAllowance || 0,
         description: values.description || null,
         isActive:    values.isActive ?? true,
         sortOrder:   values.sortOrder ?? 0,
@@ -101,13 +102,14 @@ function PlanModal({ open, plan, onClose, onSaved }) {
           <Form.Item
             name="points"
             label="赠送点数"
-            rules={[{ required: true, message: '请输入点数' }, { type: 'number', min: 1, message: '点数须 > 0' }]}
+            rules={[{ required: true, message: '请输入点数' }, { type: 'number', min: 0, message: '点数不能为负' }]}
             style={{ flex: 1 }}
           >
-            <InputNumber min={1} step={10} style={{ width: '100%' }} placeholder="600" />
+            <InputNumber min={0} step={10} style={{ width: '100%' }} placeholder="600" />
           </Form.Item>
         </Space>
 
+        <Form.Item name="monthlyAllowance" label="当月生成额度（公共树和缓存免费）"><InputNumber min={0} max={100000}/></Form.Item>
         <Form.Item name="description" label="套餐描述（可选）">
           <Input.TextArea rows={3} placeholder="套餐的详细说明，显示在设备端卡片中" />
         </Form.Item>

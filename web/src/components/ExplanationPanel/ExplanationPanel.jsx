@@ -4,13 +4,14 @@ import { getExplanation } from '../../api/pages.js';
 import { LoadingSpinner } from '../common/LoadingSpinner.jsx';
 import { MarkdownRenderer } from '../common/MarkdownRenderer.jsx';
 import { Icon } from '../common/Icons.jsx';
+import { NodeAudio } from '../../knowledge/NodeAudio.jsx';
 import styles from './ExplanationPanel.module.css';
 
 /**
  * ExplanationPanel — 底部 AI 解读面板
  * 懒生成：首次请求时调用 Gemini，之后从 DB 缓存读取
  */
-export function ExplanationPanel({ onToast }) {
+export function ExplanationPanel({ asset, preferences, onToast }) {
   const { state, dispatch } = useAppState();
   const [explanation, setExplanation] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,17 +32,19 @@ export function ExplanationPanel({ onToast }) {
   }, [onToast]);
 
   useEffect(() => {
+    if (asset) return;
     if (state.explanationOpen && state.currentPageId) {
       load(state.currentPageId, lang);
     } else {
       setExplanation('');
     }
-  }, [state.explanationOpen, state.currentPageId, lang, load]);
+  }, [state.explanationOpen, state.currentPageId, lang, load, asset]);
 
   if (!state.explanationOpen) return null;
+  const content = asset ? asset.explanations?.[lang] : explanation;
 
   return (
-    <div className={`${styles.panel} glass`}>
+    <div className={`${styles.panel} glass`} id="ai-explanation-panel">
       <div className={styles.header}>
         <h3 className={styles.title}><Icon name="lightbulb" size={16} /> AI 解读</h3>
         <div className={styles.actions}>
@@ -62,12 +65,13 @@ export function ExplanationPanel({ onToast }) {
       </div>
 
       <div className={styles.body}>
+        {asset&&<NodeAudio key={asset.key+':'+lang} asset={asset} language={lang} preferences={preferences} onToast={onToast}/>}
         {loading && <div className={styles.center}><LoadingSpinner text="AI 正在生成解读…" /></div>}
-        {!loading && explanation && (
-          <MarkdownRenderer content={explanation} className={styles.text} />
+        {!loading && content && (
+          <MarkdownRenderer content={content} className={styles.text} />
         )}
-        {!loading && !explanation && (
-          <p className={styles.hint}>点击页面图片后，解读将在此显示</p>
+        {!loading && !content && (
+          <p className={styles.hint}>{asset ? "这页暂无该语言的解读" : "点击页面图片后，解读将在此显示"}</p>
         )}
       </div>
     </div>

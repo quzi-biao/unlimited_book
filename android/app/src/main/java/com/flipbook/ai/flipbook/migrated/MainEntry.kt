@@ -1,5 +1,13 @@
 package com.flipbook.ai.flipbook.migrated
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.flipbook.ai.flipbook.migrated.hooks.rememberOtaUpdateState
+import com.flipbook.ai.flipbook.migrated.components.otaupdate.OtaBadge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,6 +39,12 @@ fun MainEntry() {
     if (!splashDone) {
         AppSplashScreen(onReady = { splashDone = true })
     } else {
-        AppScreen()
+        val ota = rememberOtaUpdateState()
+        LaunchedEffect(Unit) { ota.check() }
+        Box(Modifier.fillMaxSize()) {
+            KnowledgeScreen()
+            OtaBadge(state = ota.badgeState, onUpdate = { ota.startUpdate() }, onRestart = { ota.restartInstaller() },
+                modifier = Modifier.align(Alignment.TopStart).padding(top = 76.dp, start = 12.dp))
+        }
     }
 }

@@ -1,0 +1,197 @@
+// 个人轨迹与公共内容分离；事件幂等同步，公共树必须显式发布。
+model ReaderProfile {
+  id               String   @id @default(cuid())
+  deviceId         String?  @unique
+  username         String?  @unique
+  passwordHash     String?
+  displayName      String   @default("探索者")
+  ageBand          String   @default("unknown")
+  mode             String   @default("infinite")
+  selectedTreeId   String?
+  guardianId       String?
+  permissions      Json     @default("{}")
+  preferences      Json     @default("{}")
+  settingsRevision Int      @default(0)
+  treeRevision     Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  nodes            ReaderNode[]
+  events           LearningEvent[]
+  @@index([guardianId])
+  @@map("reader_profiles")
+}
+
+model KnowledgeTree {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @default("")
+  grade       String   @default("")
+  curriculum  String   @default("")
+  status      String   @default("draft")
+  revision    Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  nodes       KnowledgeNode[]
+  @@map("knowledge_trees")
+}
+
+model KnowledgeNode {
+  id        String   @id @default(cuid())
+  treeId    String
+  tree      KnowledgeTree @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  parentId  String?
+  assetKey  String
+  asset     KnowledgeAsset @relation(fields: [assetKey], references: [key])
+  label     String
+  domain    String
+  relation  String   @default("related")
+  order     Int      @default(0)
+  childRegions Json  @default("[]")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  @@unique([treeId, assetKey])
+  @@index([treeId, parentId])
+  @@map("knowledge_nodes")
+}
+
+model KnowledgeAsset {
+  key             String   @id
+  parentKey       String?
+  action          String
+  identity        Json
+  title           String
+  domain          String   @default("综合")
+  imageUrl        String   @default("")
+  explanations    Json     @default("{}")
+  audio           Json     @default("{}")
+  anchors         Json     @default("[]")
+  language        String   @default("zh")
+  modality        String   @default("image")
+  state           String   @default("pending")
+  reviewStatus    String   @default("pending")
+  reviewNote      String   @default("")
+  reviewedBy      String?
+  authorProfileId String?
+  leaseId         String?
+  leaseUntil      DateTime?
+  reservedProfileId String?
+  reservedPeriod    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  nodes           KnowledgeNode[]
+  readerNodes     ReaderNode[]
+  @@index([reviewStatus, state])
+  @@map("knowledge_assets")
+}
+
+model ReaderNode {
+  id           String @id @default(cuid())
+  profileId    String
+  profile      ReaderProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  assetKey     String
+  asset        KnowledgeAsset @relation(fields: [assetKey], references: [key])
+  parentId     String?
+  globalNodeId String?
+  treeId       String?
+  openedAt     DateTime?
+  lastSeenAt   DateTime?
+  visits       Int @default(0)
+  dwellSeconds Int @default(0)
+  mastery      Int @default(0)
+  reviewStep   Int @default(0)
+  nextReviewAt DateTime?
+  note         String @default("")
+  createdAt    DateTime @default(now())
+  deletedAt    DateTime?
+  @@unique([profileId, assetKey])
+  @@index([profileId, nextReviewAt])
+  @@map("reader_nodes")
+}
+
+model LearningEvent {
+  id         String
+  profileId  String
+  profile    ReaderProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  nodeId     String
+  type       String
+  payload    Json
+  occurredAt DateTime
+  receivedAt DateTime @default(now())
+  @@id([profileId, id])
+  @@index([profileId, occurredAt])
+  @@map("learning_events")
+}
+
+model KnowledgeCorrection {
+  id           String @id @default(cuid())
+  assetKey     String
+  profileId    String
+  claim        String
+  evidence     String
+  resolution   String @default("")
+  status       String @default("open")
+  acknowledged Boolean @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@index([profileId])
+  @@map("knowledge_corrections")
+}
+
+model GuardianInvite {
+  tokenHash String @id
+  childId   String
+  expiresAt DateTime
+  usedAt    DateTime?
+  @@map("guardian_invites")
+}
+
+model ReaderEntitlement {
+  profileId  String
+  period     String
+  allowance  Int @default(0)
+  consumed   Int @default(0)
+  expiresAt  DateTime
+  @@id([profileId, period])
+  @@map("reader_entitlements")
+}
+
+model PromptRelease {
+  id        String @id @default(cuid())
+  version   String @unique
+  base      String
+  safety    String
+  status    String @default("draft")
+  rollout   Int @default(0)
+  evals     Json @default("{}")
+  createdAt DateTime @default(now())
+  @@map("prompt_releases")
+}
+
+model AssemblyLog {
+  id          String @id @default(cuid())
+  assetKey    String
+  version     String
+  layers      Json
+  conflicts   Json
+  verdict     String
+  createdAt   DateTime @default(now())
+  @@index([assetKey])
+  @@map("assembly_logs")
+}
+
+// 设备旧书架只迁移给最初的本机身份，退出后不泄漏给新访客。
+model LegacyImportOwner {
+  deviceId String @id
+  profileId String
+  @@map("legacy_import_owners")
+}
+
+model KnowledgeAudioJob {
+  key String @id
+  url String?
+  leaseId String?
+  leaseUntil DateTime?
+  reservedProfileId String?
+  reservedPeriod String?
+  @@map("knowledge_audio_jobs")
+}
