@@ -111,6 +111,10 @@
   text-wrap: balance;
 }
 
+@media (max-height: 350px) and (orientation: landscape) {
+  .emptyInner { transform: translateY(-32px); }
+}
+
 /* ── Callout（对应 Android AnnotationCallout.kt） ─────────────── */
 .callout {
   position: absolute;
