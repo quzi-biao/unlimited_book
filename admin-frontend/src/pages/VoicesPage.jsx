@@ -27,7 +27,7 @@ const TYPE_MAP = {
 
 export default function VoicesPage() {
   const [voices,   setVoices]   = useState([]);
-  const [loading,  setLoading]  = useState(false);
+  const [loading,  setLoading]  = useState(true);
   const [syncing,  setSyncing]  = useState(false);
   // 试听状态：{ [voiceId]: 'loading' | 'playing' | null }
   const [previewState, setPreviewState] = useState({});
@@ -47,7 +47,14 @@ export default function VoicesPage() {
     }
   };
 
-  useEffect(() => { fetchVoices(); }, []);
+  useEffect(() => {
+    let active = true;
+    adminApi.voices.list()
+      .then(data => { if (active) setVoices(data.voices || []); })
+      .catch(() => { if (active) message.error('加载音色列表失败'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
 
   /** 立即同步 */
   const handleSync = async () => {

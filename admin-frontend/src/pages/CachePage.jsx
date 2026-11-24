@@ -15,7 +15,7 @@ export default function CachePage() {
   const [data,    setData]    = useState({ total: 0, topics: [] });
   const [page,    setPage]    = useState(1);
   const [search,  setSearch]  = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -29,7 +29,14 @@ export default function CachePage() {
     }
   }, [page, search]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let active = true;
+    adminApi.topics.list({ page, limit: 50, search })
+      .then(res => { if (active) setData(res); })
+      .catch(err => { if (active) message.error(err.message || '加载图片缓存失败'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [page, search, message]);
 
   const handleDelete = (record) => {
     modal.confirm({

@@ -12,27 +12,22 @@ export default function PromptStyleEditPage() {
   const navigate = useNavigate();
   const isNew = id === 'new';
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(() => !isNew);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!isNew) {
-      fetchStyle();
-    }
-  }, [id]);
-
-  const fetchStyle = async () => {
-    setLoading(true);
-    try {
-      const data = await adminApi.promptStyles.get(id);
-      form.setFieldsValue(data);
-    } catch (err) {
-      message.error('加载风格失败: ' + err.message);
-      navigate('/admin/prompt-styles');
-    } finally {
-      setLoading(false);
-    }
-  };
+    if (isNew) return undefined;
+    let active = true;
+    adminApi.promptStyles.get(id)
+      .then(data => { if (active) form.setFieldsValue(data); })
+      .catch(err => {
+        if (!active) return;
+        message.error('加载风格失败: ' + err.message);
+        navigate('/admin/prompt-styles');
+      })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [form, id, isNew, navigate]);
 
   const onFinish = async (values) => {
     setSaving(true);
