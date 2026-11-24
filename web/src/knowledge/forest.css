@@ -7,7 +7,7 @@
 .forest-map .dark-dot{margin:0;background:#151b29;border-color:#556176}
 .forest-map .lit-dot{background:var(--color-gold,#f0c060);box-shadow:0 0 10px #f0c06035}
 .forest-zoom{display:flex;gap:6px;margin-left:auto}
-.forest-map .forest-zoom button{font-size:12px;padding:3px 10px;border-radius:8px;background:var(--color-bg-3,#141b32);border-color:#30394c;white-space:nowrap}
+.forest-map .forest-zoom button{display:inline-flex;align-items:center;justify-content:center;min-width:36px;min-height:36px;padding:0 10px;font-size:12px;border-radius:8px;background:var(--color-bg-3,#141b32);border-color:#30394c;white-space:nowrap;touch-action:manipulation}
 .knowledge-map.forest-map .forest-scroll{height:clamp(310px,60dvh,660px);max-height:none;overflow:auto;overscroll-behavior:contain;scrollbar-color:#445066 #0c111e;scrollbar-width:thin;cursor:grab;outline-offset:-3px}
 .forest-scroll.dragging{cursor:grabbing;user-select:none}
 .forest-scroll>.empty{display:grid;width:100%;min-height:100%;place-items:center;margin:0;padding:28px;line-height:1.7;text-align:center;color:var(--muted)}
@@ -45,4 +45,10 @@
   .forest-zoom{flex:0 0 100%;justify-content:flex-end}
   .knowledge-map.forest-map .forest-scroll{height:clamp(300px,54dvh,560px)}
   .forest-hint{padding:10px 12px;flex-wrap:wrap;font-size:10px}
+}
+@media(max-height:500px) and (orientation:landscape){
+  .forest-map .forest-legend{min-height:44px;padding:4px 10px;gap:8px;flex-wrap:nowrap}
+  .forest-zoom{flex:0 0 auto;gap:4px}
+  .knowledge-map.forest-map .forest-scroll{height:auto;min-height:100px}
+  .forest-hint{display:none}
 }

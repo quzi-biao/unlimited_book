@@ -28,9 +28,11 @@ export function TreeMap({nodes,connections=[],selected,onSelect}) {
       element.scrollTop=anchor.current.y*scale-element.clientHeight/2;
       anchor.current=null;
     }else if(initialized.current!==rootKeys){
-      const active=layout.nodes.find(node=>node.assetKey===selected),focus=active||layout.root;
+      const active=layout.nodes.find(node=>node.assetKey===selected);
+      const compactLandscape=window.matchMedia('(orientation: landscape) and (max-height: 500px)').matches;
+      const focus=active||(compactLandscape?layout.branches[0]?.topic:layout.root)||layout.root;
       element.scrollLeft=Math.max(0,focus.x*scale-element.clientWidth/2);
-      element.scrollTop=active?Math.max(0,focus.y*scale-element.clientHeight*.5):element.scrollHeight-element.clientHeight;
+      element.scrollTop=active||compactLandscape?Math.max(0,focus.y*scale-element.clientHeight*.5):element.scrollHeight-element.clientHeight;
       initialized.current=rootKeys;
     }
   },[scale,rootKeys,size.width,layout,selected]);

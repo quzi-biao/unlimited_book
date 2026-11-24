@@ -57,6 +57,9 @@
 @media (max-width: 700px) {
   .knowledge-app.shelf-dialog.shelf-integrated { inset: 8px 8px 88px; width: auto; }
 }
+@media (max-height: 500px) and (orientation: landscape) {
+  .knowledge-app.shelf-dialog.shelf-integrated { inset: 8px; }
+}
 @media (max-width: 600px) {
   .knowledge-app.shelf-dialog:not(.shelf-integrated) { inset: 8px; width: auto; padding: 12px; }
   .shelf-tree-controls { gap: 8px; }
