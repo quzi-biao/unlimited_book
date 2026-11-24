@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  Table, Button, Tag, Modal, Form, Input, InputNumber,
+  Alert, Table, Button, Tag, Modal, Form, Input, InputNumber,
   Checkbox, Space, Typography, Card, App, Upload,
 } from 'antd';
 import {
@@ -82,22 +82,35 @@ function CreateModal({ open, onClose, onCreated }) {
 export default function VersionsPage() {
   const { modal, message } = App.useApp();
   const [versions, setVersions] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await adminApi.versions.list();
-      setVersions(res.versions);
+      setVersions(res.versions || []);
     } catch (err) {
-      console.error(err);
+      setLoadError(err.message || '获取版本列表失败');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    let active = true;
+    adminApi.versions.list()
+      .then(res => {
+        if (!active) return;
+        setVersions(res.versions || []);
+        setLoadError(null);
+      })
+      .catch(err => { if (active) setLoadError(err.message || '获取版本列表失败'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
 
   const handleSetCurrent = (id, name) => {
     modal.confirm({
@@ -178,6 +191,16 @@ export default function VersionsPage() {
         </Space>
       </div>
       <Card>
+        {loadError && (
+          <Alert
+            type="error"
+            showIcon
+            title="版本列表加载失败"
+            description={loadError}
+            action={<Button size="small" icon={<ReloadOutlined />} onClick={load}>重试</Button>}
+            style={{ marginBottom: 12 }}
+          />
+        )}
         <Table
           rowKey="id"
           columns={columns}

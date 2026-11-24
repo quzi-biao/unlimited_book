@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Table, Input, Select, Button, Space, Typography,
-  Card, App, Form, Switch, Popconfirm, InputNumber, Modal, Tooltip, Tag
+  Alert, Table, Input, Button, Space, Typography,
+  App, Form, Switch, Popconfirm, InputNumber, Modal, Tooltip
 } from 'antd';
 import { adminApi } from '../api';
 import { DeleteOutlined, CheckCircleFilled, MinusCircleOutlined, PlusOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 /**
  * 分类下话题列表的弹窗
@@ -16,6 +16,9 @@ function CategoryTopicsModal({ categoryId, categoryName, open, onClose, onRefres
   const { modal, message } = App.useApp();
   const [data, setData] = useState({ total: 0, topics: [] });
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+  const [dataCategoryId, setDataCategoryId] = useState(null);
+  const [settledCategoryId, setSettledCategoryId] = useState(null);
 
   const load = useCallback(async () => {
     if (!categoryId) return;
@@ -24,16 +27,34 @@ function CategoryTopicsModal({ categoryId, categoryName, open, onClose, onRefres
       // 获取全部分页1，limit大一点展示，或者正常分页
       const res = await adminApi.topics.all({ category: categoryId, page: 1, limit: 1000 });
       setData(res);
+      setDataCategoryId(categoryId);
+      setLoadError(null);
     } catch (err) {
-      console.error(err);
+      setLoadError(err.message || '获取分类话题失败');
     } finally {
       setLoading(false);
+      setSettledCategoryId(categoryId);
     }
   }, [categoryId]);
 
   useEffect(() => {
-    if (open) load();
-  }, [open, load]);
+    if (!open || !categoryId) return undefined;
+    let active = true;
+    adminApi.topics.all({ category: categoryId, page: 1, limit: 1000 })
+      .then(res => {
+        if (!active) return;
+        setData(res);
+        setDataCategoryId(categoryId);
+        setLoadError(null);
+      })
+      .catch(err => { if (active) setLoadError(err.message || '获取分类话题失败'); })
+      .finally(() => {
+        if (!active) return;
+        setLoading(false);
+        setSettledCategoryId(categoryId);
+      });
+    return () => { active = false; };
+  }, [open, categoryId]);
 
   const handleDelete = (record) => {
     modal.confirm({
@@ -84,16 +105,26 @@ function CategoryTopicsModal({ categoryId, categoryName, open, onClose, onRefres
       onCancel={onClose}
       footer={null}
       width={800}
-      destroyOnClose
+      destroyOnHidden
     >
-      <div style={{ marginBottom: 12 }}>共 {data.total} 个话题</div>
+      <div style={{ marginBottom: 12 }}>共 {dataCategoryId === categoryId ? data.total : 0} 个话题</div>
+      {loadError && (
+        <Alert
+          type="error"
+          showIcon
+          title="分类话题加载失败"
+          description={loadError}
+          action={<Button size="small" onClick={load}>重试</Button>}
+          style={{ marginBottom: 12 }}
+        />
+      )}
       <Table
         columns={columns}
-        dataSource={data.topics}
+        dataSource={dataCategoryId === categoryId ? data.topics : []}
         rowKey="id"
         size="small"
         pagination={{ pageSize: 10 }}
-        loading={loading}
+        loading={loading || (open && settledCategoryId !== categoryId)}
         scroll={{ x: 460 }}
       />
     </Modal>
@@ -104,7 +135,8 @@ export default function TopicCategoriesPage() {
   const navigate = useNavigate();
   const { message } = App.useApp();
   const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [form] = Form.useForm();
   const [modalOpen, setModalOpen] = useState(false);
@@ -113,19 +145,29 @@ export default function TopicCategoriesPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await adminApi.topicCategories.list();
       setCategories(res.categories || []);
     } catch (err) {
-      message.error(err.message);
+      setLoadError(err.message || '获取分类失败');
     } finally {
       setLoading(false);
     }
-  }, [message]);
+  }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    let active = true;
+    adminApi.topicCategories.list()
+      .then(res => {
+        if (!active) return;
+        setCategories(res.categories || []);
+        setLoadError(null);
+      })
+      .catch(err => { if (active) setLoadError(err.message || '获取分类失败'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
 
   const handleSave = async (values) => {
     try {
@@ -230,6 +272,16 @@ export default function TopicCategoriesPage() {
         </Button>
       </div>
 
+      {loadError && (
+        <Alert
+          type="error"
+          showIcon
+          title="分类列表加载失败"
+          description={loadError}
+          action={<Button size="small" onClick={load}>重试</Button>}
+          style={{ marginBottom: 12 }}
+        />
+      )}
       <Table
         columns={columns}
         dataSource={categories}
@@ -255,7 +307,7 @@ export default function TopicCategoriesPage() {
         onOk={() => form.submit()}
         okText="保存"
         cancelText="取消"
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={handleSave} style={{ marginTop: 16 }}>
           <Form.Item name="name" label="分类名称" rules={[{ required: true, message: '输入名称' }]}>

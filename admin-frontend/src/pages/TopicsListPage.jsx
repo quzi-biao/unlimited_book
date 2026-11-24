@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Table, Input, Select, Button, Tag, Space, Typography,
+  Alert, Table, Input, Select, Button, Tag, Space, Typography,
   Tooltip, Card, App, Modal, Image, Form
 } from 'antd';
 import {
@@ -22,7 +22,8 @@ export default function TopicsListPage() {
   const navigate = useNavigate();
   const { modal, message } = App.useApp();
   const [data, setData]   = useState({ total: 0, cachedTotal: 0, topics: [], categories: [] });
-  const [loading, setLoading]   = useState(false);
+  const [loading, setLoading]   = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [page, setPage]         = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [search, setSearch]     = useState('');
@@ -35,17 +36,29 @@ export default function TopicsListPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await adminApi.topics.all({ page, limit: pageSize, search, category, cached });
       setData(res);
     } catch (err) {
-      console.error(err);
+      setLoadError(err.message || '获取话题列表失败');
     } finally {
       setLoading(false);
     }
   }, [page, pageSize, search, category, cached]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let active = true;
+    adminApi.topics.all({ page, limit: pageSize, search, category, cached })
+      .then(res => {
+        if (!active) return;
+        setData(res);
+        setLoadError(null);
+      })
+      .catch(err => { if (active) setLoadError(err.message || '获取话题列表失败'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [page, pageSize, search, category, cached]);
 
   // ── 新增话题 ──────────────────────────────────────────────
   const handleAdd = async (values) => {
@@ -199,19 +212,19 @@ export default function TopicsListPage() {
             placeholder="搜索话题名称…"
             allowClear
             enterButton={<SearchOutlined />}
-            onSearch={v => { setSearch(v); setPage(1); }}
+            onSearch={v => { setLoading(true); setSearch(v); setPage(1); }}
           />
           <Select
             className={styles.category}
             placeholder="全部分类" allowClear
-            onChange={v => { setCategory(v || ''); setPage(1); }}
+            onChange={v => { setLoading(true); setCategory(v || ''); setPage(1); }}
           >
             {data.categories.map(c => <Option key={c.id} value={c.id}>{c.name}</Option>)}
           </Select>
           <Select
             className={styles.cached}
             placeholder="缓存状态" allowClear
-            onChange={v => { setCached(v || ''); setPage(1); }}
+            onChange={v => { setLoading(true); setCached(v || ''); setPage(1); }}
           >
             <Option value="true">已缓存</Option>
             <Option value="false">未缓存</Option>
@@ -234,6 +247,17 @@ export default function TopicsListPage() {
           </Button>
         </div>
 
+        {loadError && (
+          <Alert
+            type="error"
+            showIcon
+            title="话题列表加载失败"
+            description={loadError}
+            action={<Button size="small" icon={<ReloadOutlined />} onClick={load}>重试</Button>}
+            style={{ marginBottom: 12 }}
+          />
+        )}
+
         <Table
           rowKey="id"
           columns={columns}
@@ -246,7 +270,7 @@ export default function TopicsListPage() {
             current: page, pageSize, total: data.total,
             showSizeChanger: true, pageSizeOptions: ['20', '50', '100'],
             showTotal: t => `共 ${t} 条`,
-            onChange: (p, ps) => { setPage(p); setPageSize(ps); },
+            onChange: (p, ps) => { setLoading(true); setPage(p); setPageSize(ps); },
           }}
         />
       </Card>
