@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Input, Button, Space, Typography, Card, Modal, Form, Select, App, Popconfirm } from 'antd';
+import { Alert, Table, Input, Button, Space, Typography, Card, Modal, Form, Select, App, Popconfirm } from 'antd';
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import { adminApi } from '../api';
 import styles from './DeviceList.module.css';
@@ -30,6 +30,7 @@ export default function DeviceList() {
   const [search, setSearch] = useState('');
   const [filterChannelId, setFilterChannelId] = useState(undefined);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const navigate = useNavigate();
 
   // 编辑功能状态
@@ -44,8 +45,9 @@ export default function DeviceList() {
     try {
       const res = await adminApi.devices.list({ page, limit: 20, search, ...(filterChannelId ? { channelId: filterChannelId } : {}) });
       setData(res);
+      setLoadError(null);
     } catch (err) {
-      console.error(err);
+      setLoadError(err.message || '获取设备列表失败');
     } finally {
       if (!silent) setLoading(false);
     }
@@ -54,8 +56,12 @@ export default function DeviceList() {
   useEffect(() => {
     let active = true;
     adminApi.devices.list({ page, limit: 20, search, ...(filterChannelId ? { channelId: filterChannelId } : {}) })
-      .then(res => { if (active) setData(res); })
-      .catch(err => { if (active) console.error(err); })
+      .then(res => {
+        if (!active) return;
+        setData(res);
+        setLoadError(null);
+      })
+      .catch(err => { if (active) setLoadError(err.message || '获取设备列表失败'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [page, search, filterChannelId]);
@@ -196,6 +202,16 @@ export default function DeviceList() {
       </div>
 
       <Card>
+        {loadError && (
+          <Alert
+            type="error"
+            showIcon
+            title="设备列表加载失败"
+            description={loadError}
+            action={<Button size="small" icon={<ReloadOutlined />} onClick={() => load()}>重试</Button>}
+            style={{ marginBottom: 12 }}
+          />
+        )}
         <div className={styles.toolbar}>
             <Select
               className={styles.channelFilter}
@@ -234,7 +250,7 @@ export default function DeviceList() {
         />
       </Card>
 
-      <Modal title="编辑设备" open={editOpen} onCancel={() => setEditOpen(false)} onOk={saveEdit} destroyOnClose>
+      <Modal title="编辑设备" open={editOpen} onCancel={() => setEditOpen(false)} onOk={saveEdit} destroyOnHidden>
         <Form form={form} layout="vertical">
           <Form.Item name="channelId" label="关联渠道">
             <Select allowClear placeholder="请选择渠道" options={channels.map(c => ({ value: c.id, label: c.name }))} />
